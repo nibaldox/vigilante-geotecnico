@@ -6,6 +6,7 @@
   <title>Vigilante Geotécnico</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <style>
     body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0d1117; color:#e6edf3; }
     .wrap { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; padding: 12px; }
@@ -24,6 +25,12 @@
     header .actions { margin-left:auto; display:flex; gap:8px; }
     button.reset { background:#21262d; color:#e6edf3; border:1px solid #30363d; padding:6px 10px; border-radius:6px; cursor:pointer; }
     button.reset:hover { background:#30363d; }
+    button.zoom { background:#21262d; color:#e6edf3; border:1px solid #30363d; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px; }
+    button.zoom:hover { background:#30363d; }
+    button.zoom:active { background:#484f58; }
+    .zoom-controls { display:flex; gap:4px; margin-right:12px; }
+    .chart-container { position:relative; width:100%; height:400px; }
+    #chart { max-height:400px; }
   </style>
   <script>
     let chart, shaded = [];
@@ -136,6 +143,50 @@
             animation: false,
             interaction: { mode: 'index', intersect: false },
             plugins: {
+              zoom: {
+                zoom: {
+                  wheel: {
+                    enabled: true,
+                    speed: 0.05,
+                    modifierKey: 'ctrl',
+                  },
+                  pinch: {
+                    enabled: true,
+                  },
+                  drag: {
+                    enabled: true,
+                    backgroundColor: 'rgba(88, 166, 255, 0.1)',
+                    borderColor: '#58a6ff',
+                    borderWidth: 1,
+                  },
+                  mode: 'xy',
+                  onZoomStart({chart}) {
+                    chart.render();
+                  },
+                  onZoomComplete({chart}) {
+                    console.log('Zoom:', chart.getZoomLevel());
+                  }
+                },
+                pan: {
+                  enabled: true,
+                  mode: 'xy',
+                  modifierKey: 'shift',
+                  onPanStart({chart}) {
+                    chart.render();
+                  },
+                  onPanComplete({chart}) {
+                    console.log('Pan completado');
+                  }
+                },
+                limits: {
+                  x: { min: 'original', max: 'original', minRange: 3600000 }, // mínimo 1 hora
+                  y: { min: 'original', max: 'original' }
+                },
+                transition: {
+                  duration: 300,
+                  easing: 'easeInOutQuart'
+                }
+              },
               tooltip: {
                 callbacks: {
                   title(items){ return items[0]?.label || ''; },
@@ -156,7 +207,25 @@
                 }
               }
             },
-            scales: { x: { ticks: { maxTicksLimit: 8, color:'#8b949e' }, grid:{ color:'rgba(240,246,252,0.08)' } }, y: { ticks:{ color:'#8b949e' }, grid:{ color:'rgba(240,246,252,0.08)' }, title: { display: true, text: 'mm', color:'#8b949e' } } }
+            scales: {
+              x: {
+                ticks: { maxTicksLimit: 8, color:'#8b949e' },
+                grid:{ color:'rgba(240,246,252,0.08)' },
+                type: 'time',
+                time: {
+                  displayFormats: {
+                    hour: 'HH:mm',
+                    day: 'dd/MM',
+                    minute: 'HH:mm'
+                  }
+                }
+              },
+              y: {
+                ticks:{ color:'#8b949e' },
+                grid:{ color:'rgba(240,246,252,0.08)' },
+                title: { display: true, text: 'mm', color:'#8b949e' }
+              }
+            }
           },
           plugins: [{
             id: 'region-shader',
@@ -177,6 +246,15 @@
             }
           }]
         });
+
+        // Agregar doble clic para reset zoom
+        const canvas = document.getElementById('chart');
+        canvas.addEventListener('dblclick', function(event) {
+          if (chart) {
+            chart.resetZoom();
+          }
+        });
+
       } else {
         chart.data.labels = labels;
         chart.data.datasets[0].data = series;
@@ -217,18 +295,82 @@
       setTimeout(tick, 2500);
     }
     function onReset(){ anchorMs = Date.now(); chart = null; shaded = []; }
-    window.addEventListener('DOMContentLoaded', () => { document.getElementById('resetBtn').addEventListener('click', onReset); tick(); });
+    function zoomIn() {
+      if (chart) {
+        chart.zoom(1.5);
+      }
+    }
+    function zoomOut() {
+      if (chart) {
+        chart.zoom(0.67);
+      }
+    }
+    function resetZoom() {
+      if (chart) {
+        chart.resetZoom();
+      }
+    }
+    function fitToData() {
+      if (chart) {
+        chart.resetZoom();
+        // Ajustar automáticamente a todos los datos visibles
+        setTimeout(() => {
+          const filtered = filterByAnchor(currentPoints.length ? currentPoints : (DEMO ? getDemoEvents() : []));
+          if (filtered.length > 0) {
+            const times = filtered.map(p => parseTs(p.time)).filter(t => Number.isFinite(t));
+            if (times.length > 1) {
+              const minTime = Math.min(...times);
+              const maxTime = Math.max(...times);
+              const values = filtered.map(p => p.disp_mm).filter(v => typeof v === 'number');
+              const minValue = Math.min(...values);
+              const maxValue = Math.max(...values);
+              const padding = 0.1; // 10% de padding
+
+              // Aplicar zoom programático
+              chart.zoomScale('x', {
+                min: minTime,
+                max: maxTime
+              });
+              chart.zoomScale('y', {
+                min: minValue - (maxValue - minValue) * padding,
+                max: maxValue + (maxValue - minValue) * padding
+              });
+              chart.update();
+            }
+          }
+        }, 100);
+      }
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('resetBtn').addEventListener('click', onReset);
+      document.getElementById('zoomInBtn').addEventListener('click', zoomIn);
+      document.getElementById('zoomOutBtn').addEventListener('click', zoomOut);
+      document.getElementById('resetZoomBtn').addEventListener('click', resetZoom);
+      document.getElementById('fitDataBtn').addEventListener('click', fitToData);
+      tick();
+    });
   </script>
 </head>
 <body>
   <header>
     <div class="title">Vigilante Geotécnico</div>
     <div class="meta">Fuente: registros.jsonl · Actualiza cada ~2.5 s <span id="mode" class="badge"></span></div>
-    <div class="actions"><button id="resetBtn" class="reset">Reset</button></div>
+    <div class="meta">Zoom: Ctrl+rueda | Pan: Shift+drag | Zoom: botones | Reset: doble clic</div>
+    <div class="actions">
+      <div class="zoom-controls">
+        <button id="zoomInBtn" class="zoom" title="Zoom In">+</button>
+        <button id="zoomOutBtn" class="zoom" title="Zoom Out">−</button>
+        <button id="resetZoomBtn" class="zoom" title="Reset Zoom">⌂</button>
+        <button id="fitDataBtn" class="zoom" title="Fit to Data">⚡</button>
+      </div>
+      <button id="resetBtn" class="reset">Reset</button>
+    </div>
   </header>
   <div class="wrap">
     <div class="card">
-      <canvas id="chart" height="140"></canvas>
+      <div class="chart-container">
+        <canvas id="chart" height="400"></canvas>
+      </div>
     </div>
     <div class="card log">
       <h3>Mensajes LLM</h3>

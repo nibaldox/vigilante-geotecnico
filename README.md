@@ -183,6 +183,30 @@ Interfaz completa de Agno AgentOS para interactuar con los agentes IA.
 
 ---
 
+## 🎯 Funcionalidades de Zoom
+
+El gráfico incluye avanzadas funcionalidades de zoom y navegación:
+
+### ⌨️ Controles de teclado y mouse
+- **`Ctrl + rueda del mouse`**: Zoom in/out
+- **`Shift + arrastrar`**: Pan (desplazamiento) horizontal y vertical
+- **`Doble clic`**: Reset completo del zoom
+- **`Click en área vacía`**: Pan automático
+
+### 🔘 Botones de control
+- **Zoom In (+)**: Acercar 1.5x
+- **Zoom Out (−)**: Alejar a 0.67x
+- **Reset Zoom (⌂)**: Volver al zoom original
+- **Fit to Data (⚡)**: Ajuste automático a todos los datos visibles
+
+### ⚙️ Configuración avanzada
+- **Zoom mínimo**: 1 hora (evita zoom excesivo en datos temporales)
+- **Transiciones suaves**: Animación de 300ms con easing
+- **Modo XY**: Zoom independiente en ambos ejes
+- **Responsive**: Se adapta automáticamente al tamaño de la ventana
+
+---
+
 ## 🔍 Análisis Geotécnico
 
 ### Versiones disponibles
@@ -227,6 +251,11 @@ Interfaz completa de Agno AgentOS para interactuar con los agentes IA.
 La interfaz web muestra:
 
 - **Gráfico principal**: Deformación acumulada con EMAs 1h/3h/12h
+- **🎯 Zoom interactivo**:
+  - **Rueda del mouse** con `Ctrl` para zoom
+  - **Shift + arrastrar** para pan horizontal/vertical
+  - **Doble clic** para reset del zoom
+  - **Botones de control**: Zoom In/Out, Reset Zoom, Fit to Data
 - **Regiones sombreadas**: Periodos de ALERTA (amarillo) y ALARMA (rojo)
 - **Panel de mensajes**: Análisis del LLM con timestamps
 - **Botón Reset**: Reancla la vista para mostrar solo datos nuevos
