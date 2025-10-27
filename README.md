@@ -206,7 +206,12 @@ El gráfico incluye avanzadas funcionalidades de zoom y navegación:
 - **Zoom mínimo**: 1 hora (evita zoom excesivo en datos temporales)
 - **Transiciones suaves**: Animación de 300ms con easing
 - **Modo XY**: Zoom independiente en ambos ejes
-- **Responsive**: Se adapta automáticamente al tamaño de la ventana
+- **Responsive design**:
+  - **Desktop (>1024px)**: Layout de 2 columnas, gráfico de 400px
+  - **Tablet (768-1024px)**: Layout de 1 columna, gráfico de 300px
+  - **Mobile (480-768px)**: Header responsive, gráfico de 250px
+  - **Small mobile (<480px)**: Instrucciones adaptadas, gráfico de 200px
+  - **Touch-friendly**: Botones de 44px mínimo para dispositivos táctiles
 
 ---
 
@@ -271,6 +276,16 @@ La interfaz web muestra:
 - **Regiones sombreadas**: Periodos de ALERTA (amarillo) y ALARMA (rojo)
 - **Panel de mensajes**: Análisis del LLM con timestamps
 - **Botón Reset**: Reancla la vista para mostrar solo datos nuevos
+
+### 📱 Compatibilidad móvil
+
+El sistema está **100% optimizado** para dispositivos móviles y tablets:
+
+- **📱 Responsive design**: Se adapta automáticamente a cualquier tamaño de pantalla
+- **👆 Touch-friendly**: Controles optimizados para pantallas táctiles
+- **⚡ Performance**: Animaciones suaves y carga rápida en dispositivos móviles
+- **🎯 Zoom táctil**: Soporte completo para pinch-to-zoom
+- **📊 Gráficos adaptativos**: Fuentes y elementos se ajustan al tamaño de pantalla
 
 ---
 

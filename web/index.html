@@ -18,7 +18,7 @@
     .state.NORMAL { color: #2ea043; }
     .state.ALERTA { color: #d29922; }
     .state.ALARMA { color: #f85149; }
-    header { display:flex; align-items:center; gap:12px; padding:8px 12px; border-bottom:1px solid #30363d; background:#0d1117; position:sticky; top:0; z-index:1; }
+    header { display:flex; align-items:center; gap:12px; padding:8px 12px; border-bottom:1px solid #30363d; background:#0d1117; position:sticky; top:0; z-index:1; flex-wrap: wrap; }
     header .title { font-weight:700; }
     header .meta { color:#8b949e; font-size:12px; }
     header .meta .badge { padding:2px 6px; border-radius:6px; background:#30363d; margin-left:6px; color:#e6edf3; }
@@ -31,6 +31,140 @@
     .zoom-controls { display:flex; gap:4px; margin-right:12px; }
     .chart-container { position:relative; width:100%; height:400px; }
     #chart { max-height:400px; }
+
+    /* Media queries para responsive design */
+    @media (max-width: 1024px) {
+      .wrap {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 8px;
+      }
+      .chart-container {
+        height: 300px;
+      }
+      #chart {
+        max-height: 300px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .wrap {
+        grid-template-columns: 1fr;
+        gap: 6px;
+        padding: 6px;
+      }
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 8px;
+      }
+      header .actions {
+        margin-left: 0;
+        width: 100%;
+        justify-content: space-between;
+      }
+      .zoom-controls {
+        margin-right: 0;
+        gap: 2px;
+      }
+      button.zoom {
+        padding: 3px 6px;
+        font-size: 11px;
+      }
+      button.reset {
+        padding: 4px 8px;
+        font-size: 12px;
+      }
+      .chart-container {
+        height: 250px;
+      }
+      #chart {
+        max-height: 250px;
+      }
+      .log {
+        max-height: 200px;
+      }
+      .meta {
+        font-size: 11px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      header {
+        padding: 6px;
+      }
+      header .title {
+        font-size: 16px;
+      }
+      .wrap {
+        padding: 4px;
+        gap: 4px;
+      }
+      .card {
+        padding: 8px;
+      }
+      .chart-container {
+        height: 200px;
+      }
+      #chart {
+        max-height: 200px;
+      }
+      .log {
+        max-height: 150px;
+      }
+      .msg {
+        padding: 6px 0;
+        font-size: 12px;
+      }
+      .msg .time {
+        font-size: 10px;
+      }
+      .zoom-controls {
+        gap: 1px;
+      }
+      button.zoom {
+        padding: 2px 4px;
+        font-size: 10px;
+      }
+      button.reset {
+        padding: 3px 6px;
+        font-size: 11px;
+      }
+    }
+
+    @media (max-width: 320px) {
+      header .title {
+        font-size: 14px;
+      }
+      .meta {
+        font-size: 10px;
+      }
+      .chart-container {
+        height: 180px;
+      }
+      #chart {
+        max-height: 180px;
+      }
+      .log {
+        max-height: 120px;
+      }
+      .instructions {
+        display: none; /* Ocultar instrucciones en pantallas muy pequeñas */
+      }
+    }
+
+    /* Mejoras para touch devices */
+    @media (hover: none) and (pointer: coarse) {
+      button.zoom {
+        min-height: 44px; /* Touch target mínimo */
+        min-width: 44px;
+      }
+      button.reset {
+        min-height: 44px;
+        min-width: 44px;
+      }
+    }
   </style>
   <script>
     let chart, shaded = [];
@@ -209,7 +343,13 @@
             },
             scales: {
               x: {
-                ticks: { maxTicksLimit: 8, color:'#8b949e' },
+                ticks: {
+                  maxTicksLimit: window.innerWidth < 768 ? 5 : 8,
+                  color:'#8b949e',
+                  font: {
+                    size: window.innerWidth < 480 ? 10 : 12
+                  }
+                },
                 grid:{ color:'rgba(240,246,252,0.08)' },
                 type: 'time',
                 time: {
@@ -221,11 +361,25 @@
                 }
               },
               y: {
-                ticks:{ color:'#8b949e' },
+                ticks:{
+                  color:'#8b949e',
+                  font: {
+                    size: window.innerWidth < 480 ? 10 : 12
+                  }
+                },
                 grid:{ color:'rgba(240,246,252,0.08)' },
-                title: { display: true, text: 'mm', color:'#8b949e' }
+                title: {
+                  display: true,
+                  text: 'mm',
+                  color:'#8b949e',
+                  font: {
+                    size: window.innerWidth < 480 ? 10 : 12
+                  }
+                }
               }
-            }
+            },
+            responsive: true,
+            maintainAspectRatio: false
           },
           plugins: [{
             id: 'region-shader',
@@ -310,6 +464,30 @@
         chart.resetZoom();
       }
     }
+
+    // Función para actualizar responsive features
+    function updateResponsiveFeatures() {
+      if (chart) {
+        // Actualizar ticks según el ancho de pantalla
+        chart.options.scales.x.ticks.maxTicksLimit = window.innerWidth < 768 ? 5 : 8;
+        chart.options.scales.x.ticks.font.size = window.innerWidth < 480 ? 10 : 12;
+        chart.options.scales.y.ticks.font.size = window.innerWidth < 480 ? 10 : 12;
+        chart.options.scales.y.title.font.size = window.innerWidth < 480 ? 10 : 12;
+        chart.update();
+      }
+
+      // Actualizar instrucciones según el ancho de pantalla
+      const instructions = document.querySelector('.instructions');
+      if (instructions) {
+        if (window.innerWidth < 480) {
+          instructions.textContent = 'Zoom: Ctrl+rueda | Reset: doble clic';
+        } else if (window.innerWidth < 768) {
+          instructions.textContent = 'Zoom: Ctrl+rueda | Pan: Shift+drag | Reset: doble clic';
+        } else {
+          instructions.textContent = 'Zoom: Ctrl+rueda | Pan: Shift+drag | Zoom: botones | Reset: doble clic';
+        }
+      }
+    }
     function fitToData() {
       if (chart) {
         chart.resetZoom();
@@ -347,15 +525,22 @@
       document.getElementById('zoomOutBtn').addEventListener('click', zoomOut);
       document.getElementById('resetZoomBtn').addEventListener('click', resetZoom);
       document.getElementById('fitDataBtn').addEventListener('click', fitToData);
+
+      // Inicializar features responsive
+      updateResponsiveFeatures();
+
       tick();
     });
+
+    // Event listener para resize de ventana
+    window.addEventListener('resize', updateResponsiveFeatures);
   </script>
 </head>
 <body>
   <header>
     <div class="title">Vigilante Geotécnico</div>
     <div class="meta">Fuente: registros.jsonl · Actualiza cada ~2.5 s <span id="mode" class="badge"></span></div>
-    <div class="meta">Zoom: Ctrl+rueda | Pan: Shift+drag | Zoom: botones | Reset: doble clic</div>
+    <div class="meta instructions">Zoom: Ctrl+rueda | Pan: Shift+drag | Zoom: botones | Reset: doble clic</div>
     <div class="actions">
       <div class="zoom-controls">
         <button id="zoomInBtn" class="zoom" title="Zoom In">+</button>
