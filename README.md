@@ -11,7 +11,7 @@
 
 ## 📋 Descripción
 
-**Vigilante Geotécnico** es un sistema avanzado de monitoreo que combina análisis de datos geotécnicos con inteligencia artificial para detectar deformaciones en tiempo real. Utiliza datos de radares ARCSAR para identificar patrones de movimiento del terreno y generar alertas automáticas.
+**Vigilante Geotécnico** es un sistema avanzado de monitoreo que combina análisis de datos geotécnicos con inteligencia artificial para detectar deformaciones en tiempo real. Utiliza datos de radares de interferometria para identificar patrones de movimiento del terreno y generar alertas automáticas.
 
 ### ✨ Características Principales
 
@@ -29,7 +29,7 @@
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Radar ARCSAR  │───▶│   Simulador     │───▶│   Agentes IA    │
+│   Radar         │──▶│   Simulador     │───▶│   Agentes IA    │
 │   (Datos crudos)│    │   (Reglas + LLM)│    │   (DeepSeek)    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                                 │                        │
@@ -94,7 +94,7 @@ python -m uvicorn backend_app:app --reload --port 8000
 
 ### 2. Ejecutar simulación con LLM
 ```bash
-python agente_geotecnico.py --csv "ARCSAR_20250404_F8_Displacement_AREA ALT-079..csv" \
+python agente_geotecnico.py --csv "disp_example.csv" \
                             --start-at "2025-09-01 00:00" \
                             --emit-every-min 60 \
                             --sleep 0.1 \
@@ -114,7 +114,7 @@ python agente_geotecnico.py --csv "ARCSAR_20250404_F8_Displacement_AREA ALT-079.
 
 | Parámetro | Descripción | Valor por defecto |
 |-----------|-------------|-------------------|
-| `--csv` | Archivo CSV de entrada | `ARCSAR_20250404_F8_Displacement_AREA ALT-079..csv` |
+| `--csv` | Archivo CSV de entrada | `disp_example.csv` |
 | `--start-at` | Fecha/hora de inicio | `None` |
 | `--emit-every-min` | Emisión cada N minutos | `None` (continuo) |
 | `--step-points` | Puntos por iteración | `60` |
@@ -218,7 +218,7 @@ La interfaz web muestra:
 ### Simulación completa (1h real = 1h simulada)
 ```bash
 python agente_geotecnico.py \
-  --csv "ARCSAR_20250404_F8_Displacement_AREA ALT-079..csv" \
+  --csv "disp_example.csv" \
   --start-at "2025-09-01 00:00" \
   --emit-every-min 60 \
   --dry-run  # sin LLM para pruebas rápidas
@@ -227,7 +227,7 @@ python agente_geotecnico.py \
 ### Simulación acelerada (10x)
 ```bash
 python agente_geotecnico.py \
-  --csv "ARCSAR_20250404_F8_Displacement_AREA ALT-079..csv" \
+  --csv "disp_example.csv" \
   --step-points 6 \
   --sleep 0.05 \
   --llm-every 1

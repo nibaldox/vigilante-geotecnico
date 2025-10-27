@@ -395,22 +395,49 @@ def summarize_window(
 def build_prompt(snapshot: Dict) -> str:
     # Política refinada A–E
     policy = (
-        "Instrucciones (español):\n"
-        "A) Snapshot esperado (si aplica): vel(mm/hr), deform(mm), history{vel_series,deform_series}, "
-        "fixed_rules{v_alert,v_alarm,d_alert,v_alarm_with_d1,v_alarm_with_d2,use_abs}, thresholds{normal,alerta,alarma}, "
-        "persistence{win_h,metric,rule}, meta{radar_id,site,report_window_min,quality_flags}.\n"
-        "B) Reglas (orden y prioridad):\n"
-        "   (Sanidad) Rechaza NaN/inf; si quality_flags.spikes=true, ignora picos aislados (>5σ) y marca evidence=de-spike. "
-        "Si falta un parámetro requerido de una regla, no la evalúes y añade missing_param.\n"
-        "   (Fijas, usar absoluto si use_abs!=false) ALARMA: deform>d_alert & vel>v_alarm_with_d2; "
-        "ALARMA: deform>d_alert & vel>v_alarm_with_d1; ALARMA: vel>v_alarm; ALERTA: deform>d_alert; ALERTA: vel>v_alert. "
-        "Si se activan varias, toma el nivel más alto; en empate, prefiere combinaciones deform+vel sobre solo vel.\n"
-        "   (Adaptativas) Solo si no disparan fijas: con |vel|: ALARMA si >= thresholds.alarma; ALERTA si >= thresholds.alerta; NORMAL si < thresholds.normal.\n"
-        "   (Persistencia 12h) Si persistence.metric supera su regla (umbral/porcentaje), eleva 1 nivel (máx. ALARMA) y añade pers_12h.\n"
-        "   (Prioridad final) ALARMA > ALERTA > NORMAL.\n"
-        "C) Evidencias (solo catálogo): v>v_alert, v>v_alarm, |v|>thr_alerta, |v|>thr_alarma, d>d_alert, d↑, v↑, pers_12h, de-spike, missing_param, low_snr, gap_data, hist_peak.\n"
-        "D) Salida: JSON estricto (sin texto extra), rationale<=180 chars, actions<=3 (imperativas y verificables), confidence_0_1 en [0,1] (base 0.6; +0.15 si fijas; +0.1 si pers_12h; -0.2 low_snr; -0.15 si gap_data>10%).\n"
-        "E) Formato exacto: {\"level\":\"NORMAL|ALERTA|ALARMA\",\"rationale\":\"<=180 chars\",\"confidence_0_1\":0.0,\"actions\":[\"...\"],\"evidence\":[\"...\"]}\n"
+          "Instrucciones (español):\n"
+        "A) Snapshot esperado: vel(mm/hr), deform(mm), history{vel_series,deform_series}, "
+        "fixed_rules{v_alert,v_alarm,d_alert,v_alarm_with_d1,v_alarm_with_d2,use_abs}, "
+        "thresholds{normal,alerta,alarma}, persistence{win_h,metric,rule}, "
+        "meta{radar_id,site,bank,bench,report_window_min,quality_flags}.\n"
+        "B) Sanidad: Rechaza NaN/Inf; si quality_flags.spikes=true aplica de-spike (>5σ) y agrega evidence=de-spike. "
+        "Marca low_snr/gap_data si aplica. Si falta un parámetro crítico de una regla, omite esa regla y añade missing_param.\n"
+        "C) Reglas (orden y prioridad): "
+        "(Fijas; usar absoluto salvo use_abs=false) ALARMA si deform>d_alert y vel>v_alarm_with_d2; "
+        "ALARMA si deform>d_alert y vel>v_alarm_with_d1; ALARMA si vel>v_alarm; "
+        "ALERTA si deform>d_alert; ALERTA si vel>v_alert. En empate, prioriza combinaciones deform+vel.\n"
+        "   (Adaptativas; solo si no disparan fijas) con |vel|: ALARMA si >= thresholds.alarma; "
+        "ALERTA si >= thresholds.alerta; NORMAL si < thresholds.normal. Ante zona gris, el umbral más conservador.\n"
+        "   (Persistencia 12h) Si la regla de persistence se cumple, eleva 1 nivel (máx. ALARMA) y añade pers_12h.\n"
+        "D) Evidence (solo catálogo): v>v_alert, v>v_alarm, |v|>thr_alerta, |v|>thr_alarma, "
+        "d>d_alert, d↑, v↑, pers_12h, de-spike, missing_param, low_snr, gap_data, hist_peak. "
+        "PROHIBIDO números crudos en evidence.\n"
+        "E) Salida JSON (formato estricto, sin texto extra):\n"
+        "{"
+        "\"level\":\"NORMAL|ALERTA|ALARMA\","
+        "\"rationale\":\"<=180 chars\","
+        "\"justificacion\":\"200-420 chars, explicación clara con números redondeados (2 decimales)\","
+        "\"confidence_0_1\":0.0,"
+        "\"actions\":[\"...\",\"...\",\"...\"],"
+        "\"evidence\":[\"...\",\"...\"],"
+        "\"metrics\":{"
+        "\"vel\":0.0,\"deform\":0.0,"
+        "\"umbral_disparado\":\"v_alarm|v_alert|d_alert|v_alarm_with_d1|v_alarm_with_d2|thr_alerta|thr_alarma|none\","
+        "\"persistencia_h\":12}"
+        "}\n"
+        "F) Redacción:\n"
+        "- 'rationale' (≤180): síntesis para banner (estado + tendencia + mención breve de umbral/persistencia).\n"
+        "- 'justificacion' (200–420): usa esta plantilla compacta para no técnicos, con redondeo a 2 decimales:\n"
+        "  1) Contexto: vel X mm/hr y deform Y mm en la ventana. "
+        "  2) Disparo: se activa ___ por comparación con umbral ___. "
+        "  3) Tendencia: en Z h la serie muestra ___. "
+        "  4) Persistencia/calidad: ___. "
+        "  5) Cierre: el nivel ___ es coherente con criterio conservador.\n"
+        "G) Acciones: máximo 3, imperativas y verificables. "
+        "H) Confianza: base 0.60; +0.15 si fijas; +0.10 si pers_12h; −0.20 low_snr; −0.15 si gap_data>10%; clip [0,1].\n"
+        "I) Autochequeo: JSON único válido; límites de longitudes; evidence solo catálogo; "
+        "coherencia fijas>adaptativas>persistencia; unidades y abs() donde corresponda.\n"
+        "Contexto:\n"
     )
     return policy + "\nContexto:\n" + pd.Series(snapshot).to_json() + "\n"
 
@@ -1040,7 +1067,7 @@ def run_simulation(
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description='Agente geotécnico con evaluación LLM (DeepSeek).')
-    p.add_argument('--csv', default='ARCSAR_20250404_F8_Displacement_AREA ALT-079..csv', help='Ruta al CSV de entrada')
+    p.add_argument('--csv', default='disp_example.csv', help='Ruta al CSV de entrada')
     p.add_argument('--resample', default='2T', help='Regla de resampleo pandas (ej: 2T)')
     p.add_argument('--start-at', type=str, default=None, help='Fecha/hora de inicio (ej: 2025-08-01 03:00)')
     p.add_argument('--step-points', type=int, default=60, help='Puntos por iteración de simulación')
