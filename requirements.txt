@@ -1,0 +1,12 @@
+pandas
+numpy
+matplotlib
+requests
+jupyter
+python-dotenv
+openai
+rich
+fastapi
+uvicorn
+agno
+

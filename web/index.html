@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vigilante Geotécnico</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0d1117; color:#e6edf3; }
+    .wrap { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; padding: 12px; }
+    .card { background: #161b22; border:1px solid #30363d; border-radius: 8px; box-shadow: none; padding: 12px; }
+    .log { max-height: 80vh; overflow: auto; }
+    .msg { border-bottom: 1px solid #30363d; padding: 8px 0; }
+    .msg .time { color: #8b949e; font-size: 12px; }
+    .state { font-weight: 600; }
+    .state.NORMAL { color: #2ea043; }
+    .state.ALERTA { color: #d29922; }
+    .state.ALARMA { color: #f85149; }
+    header { display:flex; align-items:center; gap:12px; padding:8px 12px; border-bottom:1px solid #30363d; background:#0d1117; position:sticky; top:0; z-index:1; }
+    header .title { font-weight:700; }
+    header .meta { color:#8b949e; font-size:12px; }
+    header .meta .badge { padding:2px 6px; border-radius:6px; background:#30363d; margin-left:6px; color:#e6edf3; }
+    header .actions { margin-left:auto; display:flex; gap:8px; }
+    button.reset { background:#21262d; color:#e6edf3; border:1px solid #30363d; padding:6px 10px; border-radius:6px; cursor:pointer; }
+    button.reset:hover { background:#30363d; }
+  </style>
+  <script>
+    let chart, shaded = [];
+    let currentPoints = [];
+    const DEMO = new URLSearchParams(location.search).get('demo') === '1';
+    let anchorMs = Date.now();
+    function parseTs(ts){
+      if(!ts) return NaN;
+      const iso = ts.includes('T') ? ts : ts.replace(' ', 'T') + (ts.length===16?':00':'');
+      const d = new Date(iso);
+      return d.getTime();
+    }
+    function filterByAnchor(points){
+      const filtered = points.filter(p => {
+        const t = parseTs(p.time);
+        return isFinite(t) ? (t >= anchorMs) : true;
+      });
+      return filtered.length ? filtered : points;
+    }
+    async function fetchEvents() {
+      const res = await fetch('/api/events?limit=5000');
+      const json = await res.json();
+      return json.events || [];
+    }
+    function getDemoEvents() {
+      const now = new Date();
+      const pts = [];
+      let disp = 0;
+      for (let i = 0; i < 120; i++) {
+        const t = new Date(now - (119 - i) * 120000);
+        const ts = t.toISOString().slice(0,16).replace('T',' ');
+        const noise = (Math.sin(i/7) + Math.sin(i/13)) * 0.05;
+        let step = 0.03 + noise;
+        let state = 'NORMAL';
+        if (i > 40 && i < 55) { step += 0.15; state = 'ALERTA'; }
+        if (i > 85 && i < 95) { step += 0.35; state = 'ALARMA'; }
+        disp += step;
+        const vel_mm_hr = step * 30;
+        let rationale = 'Variación leve; sin señales relevantes.';
+        if (state === 'ALERTA') rationale = 'Aumento moderado y acumulado reciente sobre umbral; vigilancia reforzada.';
+        if (state === 'ALARMA') rationale = 'Incremento acelerado con acumulado alto; acciones inmediatas recomendadas.';
+        pts.push({ time: ts, disp_mm: +disp.toFixed(3), vel_mm_hr: +vel_mm_hr.toFixed(3), state, rationale, llm_level: state });
+      }
+      return pts;
+    }
+    function computeEMA(arr, span){
+      if (!arr || !arr.length) return [];
+      const k = 2 / (span + 1);
+      const out = new Array(arr.length).fill(null);
+      let ema = arr[0];
+      out[0] = ema;
+      for (let i=1;i<arr.length;i++){
+        const v = arr[i];
+        if (v == null) { out[i] = out[i-1]; continue; }
+        ema = v * k + ema * (1 - k);
+        out[i] = ema;
+      }
+      return out;
+    }
+    function estimateDeltaMinutes(labels){
+      if (!labels || labels.length < 2) return 2;
+      const times = labels.map(parseTs).filter(t => Number.isFinite(t));
+      const diffs = [];
+      for (let i=1;i<times.length;i++){
+        const d = (times[i] - times[i-1]) / 60000;
+        if (Number.isFinite(d) && d > 0) diffs.push(d);
+      }
+      if (!diffs.length) return 2;
+      diffs.sort((a,b)=>a-b);
+      return diffs[Math.floor(diffs.length/2)] || 2;
+    }
+    function computeShadedRegions(points) {
+      const regions = [];
+      if (!points.length) return regions;
+      let start = 0; let cur = points[0].state || 'NORMAL';
+      for (let i = 1; i < points.length; i++) {
+        const st = points[i].state || 'NORMAL';
+        if (st !== cur) {
+          if (cur !== 'NORMAL') regions.push({ state: cur, t0: points[start].time, t1: points[i-1].time });
+          start = i; cur = st;
+        }
+      }
+      if (cur !== 'NORMAL') regions.push({ state: cur, t0: points[start].time, t1: points[points.length-1].time });
+      return regions;
+    }
+    function upsertChart(points) {
+      currentPoints = points.slice();
+      const labels = points.map(p => p.time);
+      const series = points.map(p => p.disp_mm);
+      const dtMin = estimateDeltaMinutes(labels);
+      const span1h = Math.max(1, Math.round(60 / dtMin));
+      const span3h = Math.max(1, Math.round(180 / dtMin));
+      const span12h = Math.max(1, Math.round(720 / dtMin));
+      const ema1h = computeEMA(series, span1h);
+      const ema3h = computeEMA(series, span3h);
+      const ema12h  = computeEMA(series, span12h);
+      shaded = computeShadedRegions(points);
+      if (!chart) {
+        const ctx = document.getElementById('chart').getContext('2d');
+        chart = new Chart(ctx, {
+          type: 'line',
+          data: { labels, datasets: [
+            { label: 'Deformación acumulada (mm)', data: series, borderColor: '#58a6ff', /*backgroundColor: 'rgba(88,166,255,.15)',*/ fill:false, tension: 0.25, pointRadius: 0, borderWidth: 1.8, spanGaps: true },
+            { label: 'EMA 1h', data: ema1h, borderColor: '#9cdcfe', tension: 0.25, pointRadius: 0, borderWidth: 1.2, fill:false, spanGaps: true },
+            { label: 'EMA 3h', data: ema3h, borderColor: '#c5e1a5', tension: 0.25, pointRadius: 0, borderWidth: 1.1, fill:false, spanGaps: true },
+            { label: 'EMA 12h',  data: ema12h,  borderColor: '#f5b971', tension: 0.25, pointRadius: 0, borderWidth: 1.0, fill:false, spanGaps: true }
+          ] },
+          options: {
+            responsive: true,
+            animation: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  title(items){ return items[0]?.label || ''; },
+                  label(ctx){
+                    const y = ctx.parsed.y;
+                    const name = ctx.dataset.label || '';
+                    if (name.startsWith('Deformación')) return ` ${name}: ${y?.toFixed(3)} mm`;
+                    return ` ${name}: ${y?.toFixed(3)} mm`;
+                  },
+                  afterBody(items){
+                    const idx = items[0]?.dataIndex ?? 0;
+                    const p = currentPoints[idx] || {};
+                    const extra = [];
+                    if (p.vel_mm_hr != null) extra.push(` vel: ${Number(p.vel_mm_hr).toFixed(3)} mm/hr`);
+                    if (p.state) extra.push(` estado: ${p.state}`);
+                    return extra.join('\n');
+                  }
+                }
+              }
+            },
+            scales: { x: { ticks: { maxTicksLimit: 8, color:'#8b949e' }, grid:{ color:'rgba(240,246,252,0.08)' } }, y: { ticks:{ color:'#8b949e' }, grid:{ color:'rgba(240,246,252,0.08)' }, title: { display: true, text: 'mm', color:'#8b949e' } } }
+          },
+          plugins: [{
+            id: 'region-shader',
+            beforeDraw(c) {
+              const ctx2 = c.ctx; const xScale = c.scales.x; const yScale = c.scales.y;
+              if (!xScale || !yScale) return;
+              const top = yScale.getPixelForValue(yScale.max);
+              const bottom = yScale.getPixelForValue(yScale.min);
+              shaded.forEach(r => {
+                const x0 = xScale.getPixelForValue(r.t0);
+                const x1 = xScale.getPixelForValue(r.t1);
+                if (!isFinite(x0) || !isFinite(x1)) return;
+                ctx2.save();
+                ctx2.fillStyle = r.state === 'ALARMA' ? 'rgba(248,81,73,.14)' : 'rgba(210,153,34,.14)';
+                ctx2.fillRect(Math.min(x0,x1), top, Math.abs(x1-x0), bottom-top);
+                ctx2.restore();
+              });
+            }
+          }]
+        });
+      } else {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = series;
+        chart.data.datasets[1].data = ema1h;
+        chart.data.datasets[2].data = ema3h;
+        chart.data.datasets[3].data = ema12h;
+        chart.update();
+      }
+    }
+    function renderMessages(points) {
+      const box = document.getElementById('msgs');
+      box.innerHTML = '';
+      points.slice().reverse().forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'msg';
+        const badge = p.state ? `<span class="state ${p.state}">${p.state}</span>` : '';
+        const model = p.llm_level ? `<span class="meta"> | LLM: ${p.llm_level}</span>` : '';
+        div.innerHTML = `<div class="time">${p.time || ''}</div>
+          <div>${badge}${model}</div>
+          <div>${(p.rationale || '').toString().slice(0, 450)}</div>`;
+        box.appendChild(div);
+      });
+    }
+    async function tick() {
+      try {
+        let evs;
+        if (DEMO) {
+          evs = getDemoEvents();
+          document.getElementById('mode').textContent = 'DEMO';
+        } else {
+          evs = await fetchEvents();
+          document.getElementById('mode').textContent = 'LIVE';
+        }
+        const filtered = filterByAnchor(evs);
+        upsertChart(filtered);
+        renderMessages(filtered);
+      } catch (e) { console.error(e); }
+      setTimeout(tick, 2500);
+    }
+    function onReset(){ anchorMs = Date.now(); chart = null; shaded = []; }
+    window.addEventListener('DOMContentLoaded', () => { document.getElementById('resetBtn').addEventListener('click', onReset); tick(); });
+  </script>
+</head>
+<body>
+  <header>
+    <div class="title">Vigilante Geotécnico</div>
+    <div class="meta">Fuente: registros.jsonl · Actualiza cada ~2.5 s <span id="mode" class="badge"></span></div>
+    <div class="actions"><button id="resetBtn" class="reset">Reset</button></div>
+  </header>
+  <div class="wrap">
+    <div class="card">
+      <canvas id="chart" height="140"></canvas>
+    </div>
+    <div class="card log">
+      <h3>Mensajes LLM</h3>
+      <div id="msgs"></div>
+    </div>
+  </div>
+</body>
+</html>
+
+
