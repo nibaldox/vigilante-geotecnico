@@ -83,6 +83,9 @@ DEEPSEEK_BASE_URL=https://api.deepseek.com/v1  # opcional
 DEEPSEEK_MODEL=deepseek-chat
 ```
 
+### 5. Base de datos automática
+El sistema crea automáticamente la base de datos SQLite `vigilante_geotecnico.db` para el historial de los agentes. **No requiere configuración adicional**.
+
 ---
 
 ## 🎯 Uso Rápido
@@ -219,6 +222,15 @@ El gráfico incluye avanzadas funcionalidades de zoom y navegación:
   - ✅ **Métricas sugeridas** para respuestas LLM
   - ✅ **Justificación extendida** (200-420 caracteres)
   - ✅ **Autochequeo** y corrección automática
+
+### 💾 Base de datos para historial
+
+El sistema **Agno AgentOS** utiliza una base de datos SQLite para mantener el historial de conversaciones:
+
+- **📁 Archivo**: `vigilante_geotecnico.db` (SQLite)
+- **🔄 Persistencia**: Cada agente mantiene su propio historial de conversaciones
+- **💾 Funcionalidad**: Context-aware responses basadas en interacciones previas
+- **🛡️ Seguridad**: Historial privado y local (no se envía a servicios externos)
 
 ### Métricas calculadas
 

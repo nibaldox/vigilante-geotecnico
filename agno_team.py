@@ -2,6 +2,7 @@ import os
 from agno.agent import Agent
 from agno.models.deepseek import DeepSeek
 from agno.os import AgentOS
+from agno.db.sqlite import SqliteDb  # type: ignore
 import argparse
 import json
 from datetime import datetime, timedelta
@@ -37,10 +38,14 @@ def _reportador_instructions() -> str:
         "Objetivo: redactar mensaje horario conciso y consolidar informe de 12h (día/noche)."
     )
 
-# Crear agentes con DeepSeek
+# Configurar base de datos para historial de conversaciones
+db = SqliteDb(db_file="vigilante_geotecnico.db")
+
+# Crear agentes con DeepSeek y base de datos para historial
 vigilante = Agent(
     name="Vigilante",
     model=DeepSeek(id="deepseek-chat"),
+    db=db,
     add_history_to_context=True,
     markdown=True,
     instructions=_vigilante_instructions(),
@@ -49,6 +54,7 @@ vigilante = Agent(
 supervisor = Agent(
     name="Supervisor",
     model=DeepSeek(id="deepseek-chat"),
+    db=db,
     add_history_to_context=True,
     markdown=True,
     instructions=_supervisor_instructions(),
@@ -57,6 +63,7 @@ supervisor = Agent(
 reportador = Agent(
     name="Reportador",
     model=DeepSeek(id="deepseek-chat"),
+    db=db,
     add_history_to_context=True,
     markdown=True,
     instructions=_reportador_instructions(),

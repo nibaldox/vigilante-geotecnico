@@ -155,3 +155,6 @@ logs/
 *.pkl
 *.model
 *.weights
+
+# Agno database
+vigilante_geotecnico.db
