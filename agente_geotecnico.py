@@ -1071,7 +1071,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument('--resample', default='2T', help='Regla de resampleo pandas (ej: 2T)')
     p.add_argument('--start-at', type=str, default=None, help='Fecha/hora de inicio (ej: 2025-08-01 03:00)')
     p.add_argument('--step-points', type=int, default=60, help='Puntos por iteración de simulación')
-    p.add_argument('--lookback-min', type=int, default=120, help='Minutos de ventana para resumen')
+    p.add_argument('--lookback-min', type=int, default=12, help='Minutos de ventana para resumen')
     p.add_argument('--accum-rate-hours', type=float, default=24.0, help='Horas para tasa de acumulación normalizada (mm por X h)')
     p.add_argument('--baseline-fraction', type=float, default=0.2, help='Fracción inicial para baseline de umbrales')
     p.add_argument('--sleep', type=float, default=0.05, help='Segundos de espera entre iteraciones')

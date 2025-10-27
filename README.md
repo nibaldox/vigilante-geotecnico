@@ -94,12 +94,21 @@ python -m uvicorn backend_app:app --reload --port 8000
 
 ### 2. Ejecutar simulación con LLM
 ```bash
+# Versión estándar
 python agente_geotecnico.py --csv "disp_example.csv" \
                             --start-at "2025-09-01 00:00" \
                             --emit-every-min 60 \
                             --sleep 0.1 \
                             --llm-every 1 \
                             --log-jsonl registros.jsonl
+
+# Versión mejorada con validación JSON avanzada
+python agente_geotecnico_ds.py --csv "disp_example.csv" \
+                               --start-at "2025-09-01 00:00" \
+                               --emit-every-min 60 \
+                               --sleep 0.1 \
+                               --llm-every 1 \
+                               --log-jsonl registros.jsonl
 ```
 
 ### 3. Acceder a la interfaz
@@ -176,6 +185,17 @@ Interfaz completa de Agno AgentOS para interactuar con los agentes IA.
 
 ## 🔍 Análisis Geotécnico
 
+### Versiones disponibles
+
+- **`agente_geotecnico.py`**: Versión estándar con análisis básico
+- **`agente_geotecnico_ds.py`**: Versión mejorada con:
+  - ✅ **Validación JSON avanzada** con esquema estricto
+  - ✅ **Extracción robusta** de respuestas LLM
+  - ✅ **Catálogo de evidencias** con whitelist
+  - ✅ **Métricas sugeridas** para respuestas LLM
+  - ✅ **Justificación extendida** (200-420 caracteres)
+  - ✅ **Autochequeo** y corrección automática
+
 ### Métricas calculadas
 
 - **Velocidad instantánea** (mm/hr)
@@ -217,7 +237,15 @@ La interfaz web muestra:
 
 ### Simulación completa (1h real = 1h simulada)
 ```bash
+# Versión estándar
 python agente_geotecnico.py \
+  --csv "disp_example.csv" \
+  --start-at "2025-09-01 00:00" \
+  --emit-every-min 60 \
+  --dry-run  # sin LLM para pruebas rápidas
+
+# Versión mejorada
+python agente_geotecnico_ds.py \
   --csv "disp_example.csv" \
   --start-at "2025-09-01 00:00" \
   --emit-every-min 60 \
@@ -226,7 +254,15 @@ python agente_geotecnico.py \
 
 ### Simulación acelerada (10x)
 ```bash
+# Versión estándar
 python agente_geotecnico.py \
+  --csv "disp_example.csv" \
+  --step-points 6 \
+  --sleep 0.05 \
+  --llm-every 1
+
+# Versión mejorada
+python agente_geotecnico_ds.py \
   --csv "disp_example.csv" \
   --step-points 6 \
   --sleep 0.05 \
