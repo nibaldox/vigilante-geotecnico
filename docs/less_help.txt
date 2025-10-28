@@ -1,0 +1,238 @@
+                   SUMMARY OF LESS COMMANDS
+
+      Commands marked with * may be preceded by a number, _N.
+      Notes in parentheses indicate the behavior if _N is given.
+      A key preceded by a caret indicates the Ctrl key; thus ^K is ctrl-K.
+
+  h  H                 Display this help.
+  q  :q  Q  :Q  ZZ     Exit.
+ ---------------------------------------------------------------------------
+
+                           MOVING
+
+  e  ^E  j  ^N  CR  *  Forward  one line   (or _N lines).
+  y  ^Y  k  ^K  ^P  *  Backward one line   (or _N lines).
+  f  ^F  ^V  SPACE  *  Forward  one window (or _N lines).
+  b  ^B  ESC-v      *  Backward one window (or _N lines).
+  z                 *  Forward  one window (and set window to _N).
+  w                 *  Backward one window (and set window to _N).
+  ESC-SPACE         *  Forward  one window, but don't stop at end-of-file.
+  d  ^D             *  Forward  one half-window (and set half-window to _N).
+  u  ^U             *  Backward one half-window (and set half-window to _N).
+  ESC-)  RightArrow *  Right one half screen width (or _N positions).
+  ESC-(  LeftArrow  *  Left  one half screen width (or _N positions).
+  ESC-}  ^RightArrow   Right to last column displayed.
+  ESC-{  ^LeftArrow    Left  to first column.
+  F                    Forward forever; like "tail -f".
+  ESC-F                Like F but stop when search pattern is found.
+  r  ^R  ^L            Repaint screen.
+  R                    Repaint screen, discarding buffered input.
+        ---------------------------------------------------
+        Default "window" is the screen height.
+        Default "half-window" is half of the screen height.
+ ---------------------------------------------------------------------------
+
+                          SEARCHING
+
+  /pattern          *  Search forward for (_N-th) matching line.
+  ?pattern          *  Search backward for (_N-th) matching line.
+  n                 *  Repeat previous search (for _N-th occurrence).
+  N                 *  Repeat previous search in reverse direction.
+  ESC-n             *  Repeat previous search, spanning files.
+                   SUMMARY OF LESS COMMANDS
+
+Commands marked with * may be preceded by a number, N.
+Notes in parentheses indicate the behavior if N is given.
+A key preceded by a caret indicates the Ctrl key; thus ^K is ctrl-K.
+
+h  H                 Display this help.
+q  :q  Q  :Q  ZZ     Exit.
+---------------------------------------------------------------------------
+
+                          MOVING
+
+e  ^E  j  ^N  CR  *  Forward  one line   (or N lines).
+y  ^Y  k  ^K  ^P  *  Backward one line   (or N lines).
+f  ^F  ^V  SPACE  *  Forward  one window (or N lines).
+b  ^B  ESC-v      *  Backward one window (or N lines).
+z                 *  Forward one window (and set window to N).
+w                 *  Backward one window (and set window to N).
+ESC-SPACE         *  Forward one window, but don't stop at end-of-file.
+d  ^D             *  Forward one half-window (and set half-window to N).
+u  ^U             *  Backward one half-window (and set half-window to N).
+ESC-)  RightArrow *  Right one half screen width (or N positions).
+ESC-(  LeftArrow  *  Left  one half screen width (or N positions).
+ESC-}  ^RightArrow   Right to last column displayed.
+ESC-{  ^LeftArrow    Left  to first column.
+F                    Forward forever; like "tail -f".
+ESC-F                Like F but stop when search pattern is found.
+r  ^R  ^L            Repaint screen.
+R                    Repaint screen, discarding buffered input.
+       ---------------------------------------------------
+       Default "window" is the screen height.
+       Default "half-window" is half of the screen height.
+---------------------------------------------------------------------------
+
+                         SEARCHING
+
+/pattern          *  Search forward for (N-th) matching line.
+?pattern          *  Search backward for (N-th) matching line.
+n                 *  Repeat previous search (for N-th occurrence).
+N                 *  Repeat previous search in reverse direction.
+ESC-n             *  Repeat previous search, spanning files.
+ESC-N             *  Repeat previous search, reverse dir. & spanning files.
+^O^N  ^On         *  Search forward for (N-th) OSC8 hyperlink.
+^O^P  ^Op         *  Search backward for (N-th) OSC8 hyperlink.
+^O^L  ^Ol            Jump to the currently selected OSC8 hyperlink.
+ESC-u                Undo (toggle) search highlighting.
+ESC-U                Clear search highlighting.
+&_pattern          *  Display only matching lines.
+      ---------------------------------------------------
+      A search pattern may begin with one or more of:
+      ^N or !  Search for NON-matching lines.
+      ^E or *  Search multiple files (pass thru END OF FILE).
+      ^F or @  Start search at FIRST file (for /) or last file (for ?).
+      ^K       Highlight matches, but don't move (KEEP position).
+      ^R       Don't use REGULAR EXPRESSIONS.
+      ^S _n     Search for match in _n-th parenthesized subpattern.
+      ^W       WRAP search if no match found.
+      ^L       Enter next character literally into pattern.
+---------------------------------------------------------------------------
+
+                          JUMPING
+
+g  <  ESC-<       *  Go to first line in file (or line N).
+G  >  ESC->       *  Go to last line in file (or line N).
+p  %              *  Go to beginning of file (or N percent into file).
+t                 *  Go to the (N-th) next tag.
+T                 *  Go to the (N-th) previous tag.
+{  (  [           *  Find close bracket } ) ].
+}  )  ]           *  Find open bracket { ( [.
+ESC-^F <c1> <c2>  *  Find close bracket <c2>.
+ESC-^B <c1> <c2>  *  Find open bracket <c1>.
+      ---------------------------------------------------
+      Each "find close bracket" command goes forward to the close bracket 
+        matching the (N-th) open bracket in the top line.
+      Each "find open bracket" command goes backward to the open bracket 
+        matching the (N-th) close bracket in the bottom line.
+
+... (file continues; original help text moved here)
+SUMMARY OF LESS COMMANDS
+
+Commands marked with * may be preceded by a number, N.
+Notes in parentheses indicate the behavior if N is given.
+A key preceded by a caret indicates the Ctrl key; thus ^K is ctrl-K.
+
+h  H                 Display this help.
+q  :q  Q  :Q  ZZ     Exit.
+---------------------------------------------------------------------------
+
+                          MOVING
+
+ e  ^E  j  ^N  CR  *  Forward  one line   (or N lines).
+ y  ^Y  k  ^K  ^P  *  Backward one line   (or N lines).
+ f  ^F  ^V  SPACE  *  Forward  one window (or N lines).
+ b  ^B  ESC-v      *  Backward one window (or N lines).
+ z                 *  Forward one window (and set window to N).
+ w                 *  Backward one window (and set window to N).
+ ESC-SPACE         *  Forward one window, but don't stop at end-of-file.
+ d  ^D             *  Forward one half-window (and set half-window to N).
+ u  ^U             *  Backward one half-window (and set half-window to N).
+ ESC-)  RightArrow *  Right one half screen width (or N positions).
+ ESC-(  LeftArrow  *  Left  one half screen width (or N positions).
+ ESC-}  ^RightArrow   Right to last column displayed.
+ ESC-{  ^LeftArrow    Left  to first column.
+ F                    Forward forever; like "tail -f".
+ ESC-F                Like F but stop when search pattern is found.
+ r  ^R  ^L            Repaint screen.
+ R                    Repaint screen, discarding buffered input.
+       ---------------------------------------------------
+       Default "window" is the screen height.
+       Default "half-window" is half of the screen height.
+ ---------------------------------------------------------------------------
+
+                         SEARCHING
+
+ /pattern          *  Search forward for (N-th) matching line.
+ ?pattern          *  Search backward for (N-th) matching line.
+ n                 *  Repeat previous search (for N-th occurrence).
+ N                 *  Repeat previous search in reverse direction.
+ ESC-n             *  Repeat previous search, spanning files.
+ ESC-N             *  Repeat previous search, reverse dir. & spanning files.
+ ESC-^O^N  ESC-Op  *  Search forward/backwards for OSC8 hyperlink.
+ &_pattern         *  Display only matching lines.
+       ---------------------------------------------------
+       A search pattern may begin with one or more of:
+       ^N or !  Search for NON-matching lines.
+       ^E or *  Search multiple files (pass thru END OF FILE).
+       ^F or @  Start search at FIRST file (for /) or last file (for ?).
+       ^K       Highlight matches, but don't move (KEEP position).
+       ^R       Don't use REGULAR EXPRESSIONS.
+       ^S n     Search for match in n-th parenthesized subpattern.
+       ^W       WRAP search if no match found.
+       ^L       Enter next character literally into pattern.
+ ---------------------------------------------------------------------------
+
+                         JUMPING
+
+ g  <  ESC-<       *  Go to first line in file (or line N).
+ G  >  ESC->       *  Go to last line in file (or line N).
+ p  %              *  Go to beginning of file (or N percent into file).
+ t                 *  Go to the (N-th) next tag.
+ T                 *  Go to the (N-th) previous tag.
+ {  (  [           *  Find close bracket } ) ].
+ }  )  ]           *  Find open bracket { ( [.
+ ESC-^F <c1> <c2>  *  Find close bracket <c2>.
+ ESC-^B <c1> <c2>  *  Find open bracket <c1>.
+       ---------------------------------------------------
+       Each "find close bracket" command goes forward to the close bracket 
+         matching the (N-th) open bracket in the top line.
+       Each "find open bracket" command goes backward to the open bracket 
+         matching the (N-th) close bracket in the bottom line.
+
+                        MISCELLANEOUS COMMANDS
+
+ !_command             Execute the shell command with $SHELL.
+ #_command             Execute the shell command, expanded like a prompt.
+ |X_cmd                Pipe file between current pos & mark XX to shell command.
+ s file               Save input to a file.
+ v                    Edit the current file with $VISUAL or $EDITOR.
+ V                    Print version number of "less".
+ ---------------------------------------------------------------------------
+
+OPTIONS
+
+ -?  --help            Display help (from command line).
+ -a  --search-skip-screen
+ -A  --SEARCH-SKIP-SCREEN
+ -b [N]  --buffers=[N]
+ -B  --auto-buffers
+ -c  --clear-screen
+ -d  --dumb
+ -D xx_color  --color=color
+ -e  -E  --quit-at-eof  --QUIT-AT-EOF
+ -f  --force
+ -F  --quit-if-one-screen
+ -g  --hilite-search
+ -G  --HILITE-SEARCH
+ -h [N]  --max-back-scroll=[N]
+ -i  --ignore-case
+ -I  --IGNORE-CASE
+ -j [N]  --jump-target=[N]
+ -J  --status-column
+ -k file  --lesskey-file=file
+ -K  --quit-on-intr
+ -L  --no-lessopen
+ -m  -M  --long-prompt  --LONG-PROMPT
+ -n  --line-numbers
+ -N  --LINE-NUMBERS
+ -o [file]  --log-file=[file]
+ -O [file]  --LOG-FILE=[file]
+ -p pattern  --pattern=[pattern]
+ -P [prompt]  --prompt=[prompt]
+ -q  -Q  --quiet  --QUIET  --silent --SILENT
+ -r  -R  --raw-control-chars  --RAW-CONTROL-CHARS
+ -s  --squeeze-blank-lines
+ -S  --chop-long-lines
+ -t tag  --tag=[tag]
+ -T [tagsfile] --tag-file=[tagsfile]

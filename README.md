@@ -75,6 +75,14 @@ venv\Scripts\activate     # Windows
 pip install -r requirements.txt
 ```
 
+Si quieres reproducir exactamente las versiones usadas en desarrollo, usa el lockfile:
+
+```powershell
+# (Windows PowerShell)
+venv\Scripts\Activate.ps1
+pip install -r requirements-lock.txt
+```
+
 ### 4. Configurar variables de entorno
 ```bash
 # Archivo .env
@@ -307,6 +315,19 @@ python agente_geotecnico_ds.py \
   --emit-every-min 60 \
   --dry-run  # sin LLM para pruebas rápidas
 ```
+
+### Tests
+
+Se incluyen tests básicos usando pytest. Para ejecutar los tests en tu entorno:
+
+```powershell
+# activar venv (Windows PowerShell)
+& .\venv\Scripts\Activate.ps1
+python -m pytest -q
+```
+
+El repositorio también incluye un `requirements-lock.txt` con las versiones actualmente usadas; es recomendable instalar desde ese archivo para CI/reproducción.
+
 
 ### Simulación acelerada (10x)
 ```bash

@@ -1,0 +1,7 @@
+[flake8]
+exclude = .git,__pycache__,.venv,venv,env,build,dist,.github,.ipynb_checkpoints,t_api.py,*.ipynb
+max-line-length = 120
+extend-ignore = E203, W503
+per-file-ignores =
+	agente_geotecnico.py:E501
+	agente_geotecnico_ds.py:E501

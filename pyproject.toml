@@ -59,3 +59,24 @@ where = ["."]
 
 [tool.setuptools.package-data]
 "web" = ["*.html", "*.css", "*.js"]
+
+[tool.black]
+line-length = 120
+exclude = '''/(
+        venv
+    | \.venv
+    | env
+    | build
+    | dist
+    | \.ipynb_checkpoints
+    | t_api\.py
+    )/'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip = ["t_api.py"]
+
+[tool.ruff]
+line-length = 120
+extend-exclude = ["venv", ".venv", "env", "build", "dist", ".ipynb_checkpoints", "*.ipynb", "t_api.py"]

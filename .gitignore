@@ -1,3 +1,17 @@
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.db
+vigilante_geotecnico.db
+registros.jsonl
+discrepancias.jsonl
+.env
+.env.local
+.vscode/
+.idea/
+.DS_Store
+/.venv
 # Environment and virtual environments
 venv/
 env/
