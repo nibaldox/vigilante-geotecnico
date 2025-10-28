@@ -7,30 +7,85 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+  <!-- Date adapter for Chart.js time scale -->
+  <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
-    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0d1117; color:#e6edf3; }
-    .wrap { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; padding: 12px; }
-    .card { background: #161b22; border:1px solid #30363d; border-radius: 8px; box-shadow: none; padding: 12px; }
+    :root {
+      /* Dark mode variables (default) */
+      --bg-body: #0d1117;
+      --bg-card: #161b22;
+      --bg-header: #0d1117;
+      --border-color: #30363d;
+      --text-color: #e6edf3;
+      --text-muted: #8b949e;
+      --grid-color: rgba(240,246,252,0.08);
+      --state-normal: #2ea043;
+      --state-alerta: #d29922;
+      --state-alarma: #f85149;
+      --button-bg: #21262d;
+      --button-hover: #30363d;
+      --button-active: #484f58;
+    }
+
+    body.light-mode {
+      /* Light mode overrides */
+      --bg-body: #ffffff;
+      --bg-card: #f6f8fa;
+      --bg-header: #ffffff;
+      --border-color: #d1d9e0;
+      --text-color: #1f2328;
+      --text-muted: #656d76;
+      --grid-color: rgba(31,35,40,0.08);
+      --state-normal: #238636;
+      --state-alerta: #bb8009;
+      --state-alarma: #da3633;
+      --button-bg: #f6f8fa;
+      --button-hover: #d1d9e0;
+      --button-active: #c9d1d9;
+    }
+
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg-body); color: var(--text-color); }
+    /* Main layout: left column (chart + stats), right column (messages) */
+    .wrap { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; padding: 12px; align-items: start; }
+    .card { background: var(--bg-card); border:1px solid var(--border-color); border-radius: 8px; box-shadow: none; padding: 12px; }
+    .left-col { display: flex; flex-direction: column; gap: 12px; }
+     .chart-card { display:flex; flex-direction:column; }
+     /* Make the chart container flexible so the canvas can fill available space.
+       Avoid fixed heights; use min-height for sensible defaults and let flexbox
+       distribute remaining space. */
+     .chart-container { flex: 1 1 60vh; min-height: 260px; display:flex; position:relative; width:100%; }
+     .chart-container canvas { width:100% !important; height:100% !important; display:block; }
+    .stats-card { min-height: 120px; max-height: 40vh; overflow:auto; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; font-size: 14px; color: var(--text-color); }
+    /* Stats grid inside the stats card */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; align-items: center; }
+    .stats-row { display: contents; }
+    .stats-key { color: var(--text-muted); padding: 4px 6px; font-size: 13px; }
+    .stats-val { text-align: right; padding: 4px 6px; font-weight: 600; }
+    .stats-section-title { font-weight:700; margin-bottom:6px; }
+    .stats-small { font-size: 13px; color: var(--text-muted); }
     .log { max-height: 80vh; overflow: auto; }
-    .msg { border-bottom: 1px solid #30363d; padding: 8px 0; }
-    .msg .time { color: #8b949e; font-size: 12px; }
+    .msg { border-bottom: 1px solid var(--border-color); padding: 8px 0; }
+    .msg .time { color: var(--text-muted); font-size: 12px; }
     .state { font-weight: 600; }
-    .state.NORMAL { color: #2ea043; }
-    .state.ALERTA { color: #d29922; }
-    .state.ALARMA { color: #f85149; }
-    header { display:flex; align-items:center; gap:12px; padding:8px 12px; border-bottom:1px solid #30363d; background:#0d1117; position:sticky; top:0; z-index:1; flex-wrap: wrap; }
+    .state.NORMAL { color: var(--state-normal); }
+    .state.ALERTA { color: var(--state-alerta); }
+    .state.ALARMA { color: var(--state-alarma); }
+    header { display:flex; align-items:center; gap:12px; padding:8px 12px; border-bottom:1px solid var(--border-color); background: var(--bg-header); position:sticky; top:0; z-index:1; flex-wrap: wrap; }
     header .title { font-weight:700; }
-    header .meta { color:#8b949e; font-size:12px; }
-    header .meta .badge { padding:2px 6px; border-radius:6px; background:#30363d; margin-left:6px; color:#e6edf3; }
+    header .meta { color: var(--text-muted); font-size:12px; }
+    header .meta .badge { padding:2px 6px; border-radius:6px; background: var(--border-color); margin-left:6px; color: var(--text-color); }
     header .actions { margin-left:auto; display:flex; gap:8px; }
-    button.reset { background:#21262d; color:#e6edf3; border:1px solid #30363d; padding:6px 10px; border-radius:6px; cursor:pointer; }
-    button.reset:hover { background:#30363d; }
-    button.zoom { background:#21262d; color:#e6edf3; border:1px solid #30363d; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px; }
-    button.zoom:hover { background:#30363d; }
-    button.zoom:active { background:#484f58; }
+    button.reset { background: var(--button-bg); color: var(--text-color); border:1px solid var(--border-color); padding:6px 10px; border-radius:6px; cursor:pointer; }
+    button.reset:hover { background: var(--button-hover); }
+    button.zoom { background: var(--button-bg); color: var(--text-color); border:1px solid var(--border-color); padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px; }
+    button.zoom:hover { background: var(--button-hover); }
+    button.zoom:active { background: var(--button-active); }
     .zoom-controls { display:flex; gap:4px; margin-right:12px; }
-    .chart-container { position:relative; width:100%; height:400px; }
-    #chart { max-height:400px; }
+     /* Removed fixed height to allow the canvas to size via flexbox and Chart.js
+       (Chart created with maintainAspectRatio: false). */
+     .chart-container { position:relative; width:100%; }
+     #chart { width:100%; height:100%; }
 
     /* Media queries para responsive design */
     @media (max-width: 1024px) {
@@ -40,10 +95,10 @@
         padding: 8px;
       }
       .chart-container {
-        height: 300px;
+        min-height: 300px;
       }
       #chart {
-        max-height: 300px;
+        height:100%;
       }
     }
 
@@ -77,10 +132,10 @@
         font-size: 12px;
       }
       .chart-container {
-        height: 250px;
+        min-height: 250px;
       }
       #chart {
-        max-height: 250px;
+        height:100%;
       }
       .log {
         max-height: 200px;
@@ -97,6 +152,9 @@
       header .title {
         font-size: 16px;
       }
+      /* Make stats grid collapse to single column on small screens */
+      .stats-grid { grid-template-columns: 1fr !important; }
+      .stats-key { text-align: left; }
       .wrap {
         padding: 4px;
         gap: 4px;
@@ -105,10 +163,10 @@
         padding: 8px;
       }
       .chart-container {
-        height: 200px;
+        min-height: 200px;
       }
       #chart {
-        max-height: 200px;
+        height:100%;
       }
       .log {
         max-height: 150px;
@@ -141,10 +199,10 @@
         font-size: 10px;
       }
       .chart-container {
-        height: 180px;
+        min-height: 180px;
       }
       #chart {
-        max-height: 180px;
+        height:100%;
       }
       .log {
         max-height: 120px;
@@ -171,6 +229,9 @@
     let currentPoints = [];
     const DEMO = new URLSearchParams(location.search).get('demo') === '1';
     let anchorMs = Date.now();
+    let currentFile = 'registros.jsonl'; // Archivo actual
+    // Theme management (do not touch DOM before it exists)
+    let isLightMode = localStorage.getItem('theme') === 'light';
     function parseTs(ts){
       if(!ts) return NaN;
       const iso = ts.includes('T') ? ts : ts.replace(' ', 'T') + (ts.length===16?':00':'');
@@ -185,9 +246,28 @@
       return filtered.length ? filtered : points;
     }
     async function fetchEvents() {
-      const res = await fetch('/api/events?limit=5000');
-      const json = await res.json();
-      return json.events || [];
+      try {
+        const res = await fetch(`/api/events?limit=5000&file=${encodeURIComponent(currentFile)}`);
+        if (!res.ok) {
+          console.warn('fetchEvents non-ok status', res.status);
+          return [];
+        }
+        const json = await res.json();
+        const raw = json.events || [];
+        // Normalizar campos para la UI: algunos registros usan "current_state" y "llm_rationale"
+        return raw.map(e => ({
+          // mantener todos los campos, pero asegurar nombres esperados por la UI
+          ...e,
+          state: e.state || e.current_state || (e.llm_json && e.llm_json.level) || 'NORMAL',
+          rationale: e.rationale || e.llm_rationale || (e.llm_json && e.llm_json.rationale) || '',
+          llm_level: e.llm_level || (e.llm_json && e.llm_json.level) || null,
+          // asegurar disp_mm esté presente bajo ese nombre (algunos orígenes usan "disp_mm" ya)
+          disp_mm: typeof e.disp_mm !== 'undefined' ? e.disp_mm : (e.cum_disp_mm_total || null)
+        }));
+      } catch (err) {
+        console.warn('fetchEvents failed', err);
+        return [];
+      }
     }
     function getDemoEvents() {
       const now = new Date();
@@ -251,9 +331,16 @@
       return regions;
     }
     function upsertChart(points) {
-      currentPoints = points.slice();
-      const labels = points.map(p => p.time);
-      const series = points.map(p => p.disp_mm);
+      // Limitar número de puntos para evitar degradación en el cliente
+      const maxPoints = 2000;
+      let usePoints = points;
+      if (points.length > maxPoints) {
+        const step = Math.ceil(points.length / maxPoints);
+        usePoints = points.filter((_, idx) => idx % step === 0);
+      }
+      currentPoints = usePoints.slice();
+      const labels = usePoints.map(p => p.time);
+      const series = usePoints.map(p => p.disp_mm);
       const dtMin = estimateDeltaMinutes(labels);
       const span1h = Math.max(1, Math.round(60 / dtMin));
       const span3h = Math.max(1, Math.round(180 / dtMin));
@@ -261,174 +348,241 @@
       const ema1h = computeEMA(series, span1h);
       const ema3h = computeEMA(series, span3h);
       const ema12h  = computeEMA(series, span12h);
-      shaded = computeShadedRegions(points);
-      if (!chart) {
-        const ctx = document.getElementById('chart').getContext('2d');
-        chart = new Chart(ctx, {
-          type: 'line',
-          data: { labels, datasets: [
-            { label: 'Deformación acumulada (mm)', data: series, borderColor: '#58a6ff', /*backgroundColor: 'rgba(88,166,255,.15)',*/ fill:false, tension: 0.25, pointRadius: 0, borderWidth: 1.8, spanGaps: true },
-            { label: 'EMA 1h', data: ema1h, borderColor: '#9cdcfe', tension: 0.25, pointRadius: 0, borderWidth: 1.2, fill:false, spanGaps: true },
-            { label: 'EMA 3h', data: ema3h, borderColor: '#c5e1a5', tension: 0.25, pointRadius: 0, borderWidth: 1.1, fill:false, spanGaps: true },
-            { label: 'EMA 12h',  data: ema12h,  borderColor: '#f5b971', tension: 0.25, pointRadius: 0, borderWidth: 1.0, fill:false, spanGaps: true }
-          ] },
-          options: {
-            responsive: true,
-            animation: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-              zoom: {
+      shaded = computeShadedRegions(usePoints);
+
+      const canvas = document.getElementById('chart');
+      const ctx = canvas.getContext('2d');
+
+      // Robustly detect any Chart instance attached to this canvas and destroy it
+      // before creating a new chart. Use Chart.getChart(canvas) (works with v3+)
+      // and also fall back to stored back-reference.
+      try {
+        const attached = Chart.getChart(canvas) || canvas._chartInstance || chart;
+        if (attached && (!chart || attached !== chart)) {
+          try { attached.destroy(); } catch (err) { /* ignore */ }
+          canvas._chartInstance = null;
+          chart = null;
+        }
+      } catch (e) {
+        // ignore errors during detection/destruction
+      }
+
+      try {
+        if (!chart) {
+          chart = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets: [
+              { label: 'Deformación acumulada (mm)', data: series, borderColor: '#58a6ff', fill:false, tension: 0.25, pointRadius: 0, borderWidth: 1.8, spanGaps: true },
+              { label: 'EMA 1h', data: ema1h, borderColor: '#9cdcfe', tension: 0.25, pointRadius: 0, borderWidth: 1.2, fill:false, spanGaps: true },
+              { label: 'EMA 3h', data: ema3h, borderColor: '#c5e1a5', tension: 0.25, pointRadius: 0, borderWidth: 1.1, fill:false, spanGaps: true },
+              { label: 'EMA 12h',  data: ema12h,  borderColor: '#f5b971', tension: 0.25, pointRadius: 0, borderWidth: 1.0, fill:false, spanGaps: true }
+            ] },
+            options: {
+              responsive: true,
+              animation: false,
+              interaction: { mode: 'index', intersect: false },
+              maintainAspectRatio: false,
+              plugins: {
                 zoom: {
-                  wheel: {
-                    enabled: true,
-                    speed: 0.05,
-                    modifierKey: 'ctrl',
-                  },
-                  pinch: {
-                    enabled: true,
-                  },
-                  drag: {
-                    enabled: true,
-                    backgroundColor: 'rgba(88, 166, 255, 0.1)',
-                    borderColor: '#58a6ff',
-                    borderWidth: 1,
-                  },
-                  mode: 'xy',
-                  onZoomStart({chart}) {
-                    chart.render();
-                  },
-                  onZoomComplete({chart}) {
-                    console.log('Zoom:', chart.getZoomLevel());
-                  }
+                  zoom: {
+                      wheel: { enabled: true, speed: 0.05, modifierKey: 'ctrl' },
+                      pinch: { enabled: true },
+                      // Drag with Ctrl will perform a zoom selection; plain drag will pan below.
+                      drag: { enabled: true, backgroundColor: 'rgba(88, 166, 255, 0.1)', borderColor: '#58a6ff', borderWidth: 1, modifierKey: 'ctrl' },
+                      mode: 'xy'
+                    },
+                    // Enable panning without a modifier key so the user can move the chart
+                    // when zoomed using click+drag (and use Ctrl+drag for zoom selection).
+                    pan: { enabled: true, mode: 'xy' },
+                  limits: { x: { min: 'original', max: 'original', minRange: 3600000 }, y: { min: 'original', max: 'original' } },
+                  transition: { duration: 300, easing: 'easeInOutQuart' }
                 },
-                pan: {
-                  enabled: true,
-                  mode: 'xy',
-                  modifierKey: 'shift',
-                  onPanStart({chart}) {
-                    chart.render();
-                  },
-                  onPanComplete({chart}) {
-                    console.log('Pan completado');
-                  }
-                },
-                limits: {
-                  x: { min: 'original', max: 'original', minRange: 3600000 }, // mínimo 1 hora
-                  y: { min: 'original', max: 'original' }
-                },
-                transition: {
-                  duration: 300,
-                  easing: 'easeInOutQuart'
-                }
-              },
-              tooltip: {
-                callbacks: {
-                  title(items){ return items[0]?.label || ''; },
-                  label(ctx){
-                    const y = ctx.parsed.y;
-                    const name = ctx.dataset.label || '';
-                    if (name.startsWith('Deformación')) return ` ${name}: ${y?.toFixed(3)} mm`;
-                    return ` ${name}: ${y?.toFixed(3)} mm`;
-                  },
-                  afterBody(items){
-                    const idx = items[0]?.dataIndex ?? 0;
-                    const p = currentPoints[idx] || {};
-                    const extra = [];
-                    if (p.vel_mm_hr != null) extra.push(` vel: ${Number(p.vel_mm_hr).toFixed(3)} mm/hr`);
-                    if (p.state) extra.push(` estado: ${p.state}`);
-                    return extra.join('\n');
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                ticks: {
-                  maxTicksLimit: window.innerWidth < 768 ? 5 : 8,
-                  color:'#8b949e',
-                  font: {
-                    size: window.innerWidth < 480 ? 10 : 12
-                  }
-                },
-                grid:{ color:'rgba(240,246,252,0.08)' },
-                type: 'time',
-                time: {
-                  displayFormats: {
-                    hour: 'HH:mm',
-                    day: 'dd/MM',
-                    minute: 'HH:mm'
+                tooltip: {
+                  callbacks: {
+                    title(items){ return items[0]?.label || ''; },
+                    label(ctx){ const y = ctx.parsed.y; const name = ctx.dataset.label || ''; return ` ${name}: ${y?.toFixed(3)} mm`; },
+                    afterBody(items){ const idx = items[0]?.dataIndex ?? 0; const p = currentPoints[idx] || {}; const extra = []; if (p.vel_mm_hr != null) extra.push(` vel: ${Number(p.vel_mm_hr).toFixed(3)} mm/hr`); if (p.state) extra.push(` estado: ${p.state}`); return extra.join('\n'); }
                   }
                 }
               },
-              y: {
-                ticks:{
-                  color:'#8b949e',
-                  font: {
-                    size: window.innerWidth < 480 ? 10 : 12
-                  }
-                },
-                grid:{ color:'rgba(240,246,252,0.08)' },
-                title: {
-                  display: true,
-                  text: 'mm',
-                  color:'#8b949e',
-                  font: {
-                    size: window.innerWidth < 480 ? 10 : 12
-                  }
-                }
+              scales: {
+                x: { ticks: { maxTicksLimit: 8, color:'var(--text-secondary)', font: { size: 12 } }, grid:{ color:'var(--grid-line)' }, type: 'time', time: { tooltipFormat: 'dd/MM HH:mm', displayFormats: { hour: 'dd/MM HH:mm', day: 'dd/MM HH:mm', minute: 'dd/MM HH:mm' } } },
+                y: { ticks:{ color:'var(--text-secondary)', font: { size: 12 } }, grid:{ color:'var(--grid-line)' }, title: { display: true, text: 'mm', color:'var(--text-secondary)', font: { size: 12 } } }
               }
             },
-            responsive: true,
-            maintainAspectRatio: false
-          },
-          plugins: [{
-            id: 'region-shader',
-            beforeDraw(c) {
-              const ctx2 = c.ctx; const xScale = c.scales.x; const yScale = c.scales.y;
-              if (!xScale || !yScale) return;
-              const top = yScale.getPixelForValue(yScale.max);
-              const bottom = yScale.getPixelForValue(yScale.min);
-              shaded.forEach(r => {
-                const x0 = xScale.getPixelForValue(r.t0);
-                const x1 = xScale.getPixelForValue(r.t1);
-                if (!isFinite(x0) || !isFinite(x1)) return;
-                ctx2.save();
-                ctx2.fillStyle = r.state === 'ALARMA' ? 'rgba(248,81,73,.14)' : 'rgba(210,153,34,.14)';
-                ctx2.fillRect(Math.min(x0,x1), top, Math.abs(x1-x0), bottom-top);
-                ctx2.restore();
-              });
-            }
-          }]
-        });
+            plugins: [{ id: 'region-shader', beforeDraw(c) { const ctx2 = c.ctx; const xScale = c.scales.x; const yScale = c.scales.y; if (!xScale || !yScale) return; const top = yScale.getPixelForValue(yScale.max); const bottom = yScale.getPixelForValue(yScale.min); shaded.forEach(r => { const x0 = xScale.getPixelForValue(r.t0); const x1 = xScale.getPixelForValue(r.t1); if (!isFinite(x0) || !isFinite(x1)) return; ctx2.save(); ctx2.fillStyle = r.state === 'ALARMA' ? 'rgba(248,81,73,.14)' : 'rgba(210,153,34,.14)'; ctx2.fillRect(Math.min(x0,x1), top, Math.abs(x1-x0), bottom-top); ctx2.restore(); }); } }]
+          });
+        } else {
+          // update existing chart
+          chart.data.labels = labels;
+          chart.data.datasets[0].data = series;
+          if (chart.data.datasets[1]) chart.data.datasets[1].data = ema1h;
+          if (chart.data.datasets[2]) chart.data.datasets[2].data = ema3h;
+          if (chart.data.datasets[3]) chart.data.datasets[3].data = ema12h;
+          chart.update();
+          try { chart.resize(); } catch (e) { /* ignore */ }
+        }
+
+        // keep a back-reference on the canvas to detect reuse
+        try { canvas._chartInstance = chart; } catch (e) { /* ignore */ }
 
         // Agregar doble clic para reset zoom
-        const canvas = document.getElementById('chart');
-        canvas.addEventListener('dblclick', function(event) {
-          if (chart) {
-            chart.resetZoom();
-          }
-        });
+        canvas.addEventListener('dblclick', function(event) { if (chart) chart.resetZoom(); });
 
-      } else {
-        chart.data.labels = labels;
-        chart.data.datasets[0].data = series;
-        chart.data.datasets[1].data = ema1h;
-        chart.data.datasets[2].data = ema3h;
-        chart.data.datasets[3].data = ema12h;
-        chart.update();
+        // Force Chart.js to resize to the container dimensions now that canvas
+        // and container CSS ensure 100% height/width.
+        try { chart.resize(); } catch (e) { /* ignore */ }
+      } catch (e) {
+        console.warn('chart creation/update failed', e);
       }
     }
+
+    function toggleTheme() {
+      isLightMode = !isLightMode;
+      document.body.classList.toggle('light-mode', isLightMode);
+      localStorage.setItem('theme', isLightMode ? 'light' : 'dark');
+      updateThemeIcon();
+    }
+
+    function updateThemeIcon() {
+      const icon = document.getElementById('themeIcon');
+      if (isLightMode) {
+        // Moon icon
+        icon.innerHTML = `
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        `;
+      } else {
+        // Sun icon
+        icon.innerHTML = `
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        `;
+      }
+    }
+    // Compute summary statistics for the current window
+    function computeStats(points) {
+      if (!points || !points.length) return null;
+      const n = points.length;
+      const last = points[n-1];
+      const prev = points[n-2] || null;
+      const toNumber = v => (v == null ? NaN : Number(v));
+      const last_disp = toNumber(last.disp_mm ?? last.cum_disp_mm_total ?? last.cum_disp_mm ?? NaN);
+      const prev_disp = prev ? toNumber(prev.disp_mm ?? prev.cum_disp_mm_total ?? prev.cum_disp_mm ?? NaN) : NaN;
+      const last_step = Number.isFinite(prev_disp) ? (last_disp - prev_disp) : NaN;
+      const window_accum = Number.isFinite(points[0]?.disp_mm) ? (last_disp - toNumber(points[0].disp_mm)) : NaN;
+      const vel = toNumber(last.vel_mm_hr ?? last.llm_json?.metrics?.vel ?? NaN);
+      const rate = vel; // mm/hr (alias)
+      const proj24 = Number.isFinite(vel) ? (vel * 24) : NaN;
+
+      // min/max in window (by cumulative displacement if available)
+      let minV = Infinity, maxV = -Infinity, minIdx=-1, maxIdx=-1;
+      for (let i=0;i<points.length;i++){ const v = toNumber(points[i].disp_mm); if (Number.isFinite(v)){ if (v < minV){ minV = v; minIdx = i;} if (v > maxV){ maxV = v; maxIdx = i;} } }
+      if (!Number.isFinite(minV)) { minV = NaN; minIdx = -1; }
+      if (!Number.isFinite(maxV)) { maxV = NaN; maxIdx = -1; }
+
+      // thresholds (take from last if present)
+      const thresholds = last.thresholds || last.llm_json?.metrics?.thresholds || null;
+
+      // classification/decision
+      const decision = last.current_state || last.state || last.llm_json?.level || last.llm_level || 'NORMAL';
+      const rule = (last.llm_json && last.llm_json.evidence && last.llm_json.evidence.join) ? last.llm_json.evidence.join(', ') : (last.llm_json?.metrics?.umbral_disparado || '—');
+
+      return {
+        n, last_time: last.time, last_disp, last_step, window_accum, vel, rate, proj24,
+        minV, minTime: (minIdx>=0?points[minIdx].time:null), maxV, maxTime: (maxIdx>=0?points[maxIdx].time:null), thresholds, decision, rule
+      };
+    }
+
+    function fmt(v, digits=3){ if (v == null || !Number.isFinite(Number(v))) return '—'; return Number(v).toFixed(digits); }
+
+    // Render stats to the stats card
+    function renderStats(points){
+      const s = computeStats(points);
+      const container = document.getElementById('stats-content');
+      if (!s){ container.textContent = 'No hay datos disponibles.'; return; }
+
+      // Build a compact, two-column grid display for metrics
+      const html = [];
+      html.push(`<div class="stats-section-title">Clasificación</div>`);
+      html.push(`<div class="stats-small">Decisión: <strong>${escapeHtml(s.decision)}</strong> · Regla: <span style="color:#9fb6ff">${escapeHtml(s.rule)}</span></div>`);
+
+      html.push(`<hr style="border-color:var(--border-color); margin:8px 0">`);
+      html.push(`<div class="stats-section-title">Métricas actuales</div>`);
+      html.push(`<div class="stats-grid">`);
+      const addGrid = (k,v) => { html.push(`<div class="stats-key">${escapeHtml(k)}</div><div class="stats-val">${escapeHtml(v)}</div>`); };
+      addGrid('Lectura acumulada (mm)', fmt(s.last_disp,3));
+      addGrid('Último paso (mm)', fmt(s.last_step,3));
+      addGrid('Acumulado en ventana (mm)', fmt(s.window_accum,3));
+      addGrid('Velocidad (mm/hr)', fmt(s.vel,3));
+      addGrid('Proyección 24h (mm)', fmt(s.proj24,3));
+      html.push(`</div>`);
+
+      html.push(`<hr style="border-color:var(--border-color); margin:8px 0">`);
+      html.push(`<div class="stats-section-title">Ventana (extremos)</div>`);
+      html.push(`<div class="stats-small">Ventana: ${escapeHtml(((s.n * 1)/60).toFixed(2))} h · puntos=${s.n}</div>`);
+      html.push(`<div class="stats-grid">`);
+      addGrid('Min acumulado', `${fmt(s.minV,3)} mm${s.minTime?` @ ${escapeHtml(s.minTime)}`:''}`);
+      addGrid('Max acumulado', `${fmt(s.maxV,3)} mm${s.maxTime?` @ ${escapeHtml(s.maxTime)}`:''}`);
+      addGrid('Cruzó 0 en ventana', (s.minV < 0 && s.maxV > 0) ? 'Sí' : 'No');
+      html.push(`</div>`);
+
+      if (s.thresholds) {
+        html.push(`<hr style="border-color:var(--border-color); margin:8px 0">`);
+        html.push(`<div class="stats-section-title">Umbrales</div>`);
+        html.push(`<div class="stats-small">`);
+        if (s.thresholds.alerta_mm_hr || s.thresholds.alarma_mm_hr) {
+          html.push(`Alerta: ${fmt(s.thresholds.alerta_mm_hr,3)} mm/hr · Alarma: ${fmt(s.thresholds.alarma_mm_hr,3)} mm/hr · Fuente: ${escapeHtml(s.thresholds.source||'—')}`);
+        } else {
+          html.push(`Umbrales: —`);
+        }
+        html.push(`</div>`);
+      }
+
+      container.innerHTML = html.join('');
+    }
+
+    // Simple escape for textContent-like insertion inside HTML
+    function escapeHtml(str){ if (str == null) return ''; return String(str).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; }); }
     function renderMessages(points) {
       const box = document.getElementById('msgs');
-      box.innerHTML = '';
+      // Evitar innerHTML para prevenir XSS. Construir nodos y usar textContent.
+      while (box.firstChild) box.removeChild(box.firstChild);
       points.slice().reverse().forEach(p => {
         const div = document.createElement('div');
         div.className = 'msg';
-        const badge = p.state ? `<span class="state ${p.state}">${p.state}</span>` : '';
-        const model = p.llm_level ? `<span class="meta"> | LLM: ${p.llm_level}</span>` : '';
-        div.innerHTML = `<div class="time">${p.time || ''}</div>
-          <div>${badge}${model}</div>
-          <div>${(p.rationale || '').toString().slice(0, 450)}</div>`;
+
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'time';
+        timeDiv.textContent = p.time || '';
+
+        const headerDiv = document.createElement('div');
+        if (p.state) {
+          const spanState = document.createElement('span');
+          spanState.className = `state ${p.state}`;
+          spanState.textContent = p.state;
+          headerDiv.appendChild(spanState);
+        }
+        if (p.llm_level) {
+          const spanModel = document.createElement('span');
+          spanModel.className = 'meta';
+          spanModel.textContent = ` | LLM: ${p.llm_level}`;
+          headerDiv.appendChild(spanModel);
+        }
+
+        const rationaleDiv = document.createElement('div');
+        const rationaleText = (p.rationale || '').toString().slice(0, 450);
+        rationaleDiv.textContent = rationaleText;
+
+        div.appendChild(timeDiv);
+        div.appendChild(headerDiv);
+        div.appendChild(rationaleDiv);
         box.appendChild(div);
       });
     }
@@ -445,18 +599,73 @@
         const filtered = filterByAnchor(evs);
         upsertChart(filtered);
         renderMessages(filtered);
+        renderStats(filtered);
       } catch (e) { console.error(e); }
       setTimeout(tick, 2500);
     }
     function onReset(){ anchorMs = Date.now(); chart = null; shaded = []; }
     function zoomIn() {
       if (chart) {
-        chart.zoom(1.5);
+        try {
+          if (typeof chart.zoom === 'function') {
+            chart.zoom(1.5);
+            return;
+          }
+          // Fallback: reducir rango X/Y centrado
+          const x = chart.scales?.x;
+          if (x) {
+            const min = x.min ?? x.getValueForPixel(x.left);
+            const max = x.max ?? x.getValueForPixel(x.right);
+            const center = (min + max) / 2;
+            const range = Math.max(1, (max - min) / 1.5);
+            chart.options.scales.x.min = center - range / 2;
+            chart.options.scales.x.max = center + range / 2;
+          }
+          const y = chart.scales?.y;
+          if (y) {
+            const minY = y.min ?? y.getValueForPixel(y.bottom);
+            const maxY = y.max ?? y.getValueForPixel(y.top);
+            const centerY = (minY + maxY) / 2;
+            const rangeY = Math.max(0.00001, (maxY - minY) / 1.5);
+            chart.options.scales.y.min = centerY - rangeY / 2;
+            chart.options.scales.y.max = centerY + rangeY / 2;
+          }
+          chart.update();
+        } catch (e) {
+          console.warn('zoomIn fallback failed', e);
+        }
       }
     }
     function zoomOut() {
       if (chart) {
-        chart.zoom(0.67);
+        try {
+          if (typeof chart.zoom === 'function') {
+            chart.zoom(0.67);
+            return;
+          }
+          // Fallback: ampliar rango X/Y centrado
+          const x = chart.scales?.x;
+          if (x) {
+            const min = x.min ?? x.getValueForPixel(x.left);
+            const max = x.max ?? x.getValueForPixel(x.right);
+            const center = (min + max) / 2;
+            const range = Math.max(1, (max - min) * 1.5);
+            chart.options.scales.x.min = center - range / 2;
+            chart.options.scales.x.max = center + range / 2;
+          }
+          const y = chart.scales?.y;
+          if (y) {
+            const minY = y.min ?? y.getValueForPixel(y.bottom);
+            const maxY = y.max ?? y.getValueForPixel(y.top);
+            const centerY = (minY + maxY) / 2;
+            const rangeY = Math.max(0.00001, (maxY - minY) * 1.5);
+            chart.options.scales.y.min = centerY - rangeY / 2;
+            chart.options.scales.y.max = centerY + rangeY / 2;
+          }
+          chart.update();
+        } catch (e) {
+          console.warn('zoomOut fallback failed', e);
+        }
       }
     }
     function resetZoom() {
@@ -469,11 +678,15 @@
     function updateResponsiveFeatures() {
       if (chart) {
         // Actualizar ticks según el ancho de pantalla
-        chart.options.scales.x.ticks.maxTicksLimit = window.innerWidth < 768 ? 5 : 8;
-        chart.options.scales.x.ticks.font.size = window.innerWidth < 480 ? 10 : 12;
-        chart.options.scales.y.ticks.font.size = window.innerWidth < 480 ? 10 : 12;
-        chart.options.scales.y.title.font.size = window.innerWidth < 480 ? 10 : 12;
+        const maxTicks = window.innerWidth < 768 ? 5 : 8;
+        const fontSize = window.innerWidth < 480 ? 10 : 12;
+
+        chart.options.scales.x.ticks.maxTicksLimit = maxTicks;
+        chart.options.scales.x.ticks.font.size = fontSize;
+        chart.options.scales.y.ticks.font.size = fontSize;
+        chart.options.scales.y.title.font.size = fontSize;
         chart.update();
+        try { chart.resize(); } catch (e) { /* ignore */ }
       }
 
       // Actualizar instrucciones según el ancho de pantalla
@@ -504,30 +717,73 @@
               const maxValue = Math.max(...values);
               const padding = 0.1; // 10% de padding
 
-              // Aplicar zoom programático
-              chart.zoomScale('x', {
-                min: minTime,
-                max: maxTime
-              });
-              chart.zoomScale('y', {
-                min: minValue - (maxValue - minValue) * padding,
-                max: maxValue + (maxValue - minValue) * padding
-              });
+              // Aplicar rango directamente como fallback estable
+              chart.options.scales.x.min = minTime;
+              chart.options.scales.x.max = maxTime;
+              chart.options.scales.y.min = minValue - (maxValue - minValue) * padding;
+              chart.options.scales.y.max = maxValue + (maxValue - minValue) * padding;
               chart.update();
             }
           }
         }, 100);
       }
     }
+    async function loadAvailableFiles() {
+      try {
+        const res = await fetch('/api/files');
+        if (res.ok) {
+          const data = await res.json();
+          const selector = document.getElementById('fileSelector');
+          selector.innerHTML = '';
+          data.files.forEach(file => {
+            const option = document.createElement('option');
+            option.value = file;
+            option.textContent = file;
+            selector.appendChild(option);
+          });
+          // Restaurar archivo guardado o usar el primero
+          const saved = localStorage.getItem('selectedFile');
+          if (saved && data.files.includes(saved)) {
+            selector.value = saved;
+            currentFile = saved;
+          } else if (data.files.length > 0) {
+            currentFile = data.files[0];
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load files list', err);
+      }
+    }
+
+    function onFileChange() {
+      const selector = document.getElementById('fileSelector');
+      currentFile = selector.value;
+      localStorage.setItem('selectedFile', currentFile);
+      // Reset and reload
+      onReset();
+      tick();
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('resetBtn').addEventListener('click', onReset);
       document.getElementById('zoomInBtn').addEventListener('click', zoomIn);
       document.getElementById('zoomOutBtn').addEventListener('click', zoomOut);
       document.getElementById('resetZoomBtn').addEventListener('click', resetZoom);
       document.getElementById('fitDataBtn').addEventListener('click', fitToData);
+      document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+      document.getElementById('fileSelector').addEventListener('change', onFileChange);
+
+      // Apply theme class now that DOM exists
+      if (isLightMode) document.body.classList.add('light-mode');
+
+      // Initialize theme icon
+      updateThemeIcon();
 
       // Inicializar features responsive
       updateResponsiveFeatures();
+
+      // Cargar lista de archivos disponibles
+      loadAvailableFiles();
 
       tick();
     });
@@ -539,27 +795,52 @@
 <body>
   <header>
     <div class="title">Vigilante Geotécnico</div>
-    <div class="meta">Fuente: registros.jsonl · Actualiza cada ~2.5 s <span id="mode" class="badge"></span></div>
+    <div class="meta">
+      Fuente:
+      <select id="fileSelector" style="background: var(--button-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 2px 6px; border-radius: 4px; margin: 0 4px;">
+        <option value="registros.jsonl">registros.jsonl</option>
+      </select>
+      · Actualiza cada ~2.5 s <span id="mode" class="badge"></span>
+    </div>
     <div class="meta instructions">Zoom: Ctrl+rueda | Pan: Shift+drag | Zoom: botones | Reset: doble clic</div>
     <div class="actions">
       <div class="zoom-controls">
-        <button id="zoomInBtn" class="zoom" title="Zoom In">+</button>
-        <button id="zoomOutBtn" class="zoom" title="Zoom Out">−</button>
-        <button id="resetZoomBtn" class="zoom" title="Reset Zoom">⌂</button>
-        <button id="fitDataBtn" class="zoom" title="Fit to Data">⚡</button>
+        <button id="zoomInBtn" class="zoom" title="Zoom In" aria-label="Zoom in">+</button>
+        <button id="zoomOutBtn" class="zoom" title="Zoom Out" aria-label="Zoom out">−</button>
+        <button id="resetZoomBtn" class="zoom" title="Reset Zoom" aria-label="Reset zoom">⌂</button>
+        <button id="fitDataBtn" class="zoom" title="Fit to Data" aria-label="Ajustar a datos">⚡</button>
       </div>
+      <button id="themeToggleBtn" class="zoom" title="Toggle Theme" aria-label="Alternar tema">
+        <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Sun icon -->
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </button>
       <button id="resetBtn" class="reset">Reset</button>
     </div>
   </header>
   <div class="wrap">
-    <div class="card">
-      <div class="chart-container">
-        <canvas id="chart" height="400"></canvas>
+    <div class="left-col">
+      <div class="card chart-card">
+        <div class="chart-container">
+          <canvas id="chart" role="img" aria-label="Gráfica de deformación acumulada"></canvas>
+        </div>
+      </div>
+      <div class="card stats-card" id="stats-card">
+        <div id="stats-content">Cargando estadísticas...</div>
       </div>
     </div>
     <div class="card log">
       <h3>Mensajes LLM</h3>
-      <div id="msgs"></div>
+      <div id="msgs" role="region" aria-live="polite" aria-label="Mensajes LLM"></div>
     </div>
   </div>
 </body>
