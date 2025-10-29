@@ -4,6 +4,7 @@
 
 - [Selector de Archivos](#-selector-de-archivos)
 - [Reportes Automáticos](#-reportes-automáticos)
+- [Interfaz de Agentes Agno](#-interfaz-de-agentes-agno)
 - [Servidor Integrado](#-servidor-integrado)
 - [API REST Completa](#-api-rest-completa)
 
@@ -200,6 +201,206 @@ scheduler.add_job(
     trigger=CronTrigger(hour=20, minute=0),  # 8:00 PM
     id="reporte_8pm",
 )
+```
+
+---
+
+## 🤖 Interfaz de Agentes Agno
+
+### Descripción
+Página dedicada para interactuar con los agentes multi-nivel (Vigilante, Supervisor, Reportador) mediante chat en tiempo real, con inspección de herramientas y conversaciones.
+
+### Características
+
+✅ **Chat interactivo** con cada agente (Vigilante/Supervisor/Reportador)
+✅ **Integración con AgentOS UI** nativa de Agno Framework
+✅ **Inspección en tiempo real** de tool calls y decisiones
+✅ **Persistencia** de conversaciones en SQLite
+✅ **Navegación fluida** entre Dashboard y Agentes
+✅ **Tema sincronizado** (dark/light) con el resto del sistema
+
+### Acceso a la Interfaz
+
+1. **Desde el Dashboard**: Clic en "🤖 Agentes" en el header
+2. **URL directa**: http://localhost:8000/agents.html
+3. **Agno UI nativa**: http://localhost:8000/agents (iframe integrado)
+
+### Arquitectura de Agentes
+
+| Agente | Rol | Horizonte Temporal | Señales Clave |
+|--------|-----|-------------------|---------------|
+| **👁️ Vigilante** | Monitoreo de corto plazo | 1-3h | `\|vel\|`, EMAs 1h/3h/12h, IV, Bollinger |
+| **🔍 Supervisor** | Validación de medio plazo | 12-48h | EMAs 12h/24h/48h, contexto histórico |
+| **📊 Reportador** | Síntesis y comunicación | Variable | Agregación de métricas, eventos destacados |
+
+### Uso con Chat Interactivo
+
+#### Ejemplo 1: Consultar al Vigilante
+
+```
+Usuario → Vigilante:
+"Analiza el punto 5000 del archivo disp_example.csv usando tool_analyze_window.
+¿Qué nivel recomiendas?"
+
+Vigilante → [Ejecuta tool_analyze_window]
+{
+  "level": "ALERTA",
+  "confidence": 0.87,
+  "primary_trigger": "vel > umbral_alerta (1.8 > 1.2)",
+  "metrics": {
+    "vel_mm_hr": 1.8,
+    "disp_mm": 12.5,
+    "ema_1h": 12.3,
+    "iv": 0.52
+  },
+  "justification": "La velocidad de 1.8 mm/hr supera el umbral adaptativo..."
+}
+```
+
+#### Ejemplo 2: Validación con Supervisor
+
+```
+Usuario → Supervisor:
+"El Vigilante emitió ALERTA para el punto 5000.
+Valida con contexto de 12h usando tool_get_recent_events."
+
+Supervisor → [Ejecuta tool_get_recent_events(hours=12)]
+{
+  "validation": "DEGRADADO",
+  "final_level": "NORMAL",
+  "vigilante_level": "ALERTA",
+  "confidence": 0.82,
+  "rationale": "Aunque el Vigilante detectó vel=1.8 mm/hr en ventana 1h,
+  el análisis de contexto 12-48h muestra que las EMAs 24h y 48h permanecen estables..."
+}
+```
+
+#### Ejemplo 3: Solicitar Reporte
+
+```
+Usuario → Reportador:
+"Genera un reporte horario consolidando los últimos análisis del Vigilante y Supervisor."
+
+Reportador → [Sintetiza información]
+=== VIGILANTE GEOTÉCNICO - Reporte Horario ===
+Período: 2025-10-29 13:00 a 2025-10-29 14:00
+Estado: NORMAL
+
+Métricas:
+- Velocidad: 0.8 mm/hr (promedio), 1.2 mm/hr (P95)
+- Desplazamiento: 10.5 a 11.2 mm (rango)
+- Tendencia: ESTABLE
+
+Análisis:
+Vigilante detectó operación normal. Supervisor confirma estabilidad en ventana 12-48h.
+No se requieren acciones inmediatas.
+```
+
+### Herramientas (Tools) Disponibles
+
+Los agentes tienen acceso a las siguientes herramientas:
+
+1. **`tool_load_geotechnical_data`** - Carga y preprocesa datos CSV
+2. **`tool_compute_thresholds`** - Calcula umbrales adaptativos (MAD + percentiles)
+3. **`tool_analyze_window`** - Analiza ventana temporal específica
+4. **`tool_get_recent_events`** - Recupera eventos desde JSONL histórico
+5. **`tool_send_alert`** (futuro) - Envío de alertas automáticas
+
+### Selector de Agentes
+
+La interfaz permite cambiar el contexto del agente activo:
+
+- **Todos los agentes**: Vista general del equipo
+- **Vigilante**: Análisis de corto plazo (1-3h)
+- **Supervisor**: Validación de medio plazo (12-48h)
+- **Reportador**: Generación de informes
+
+### Persistencia y Memoria
+
+- **Base de datos**: `vigilante_geotecnico.db` (SQLite)
+- **Historial**: Todas las conversaciones se almacenan con contexto
+- **add_history_to_context=True**: Los agentes recuerdan interacciones previas
+
+### Ventajas de AgentOS UI
+
+✅ **UI profesional lista para producción**
+✅ **Sin desarrollo frontend adicional**
+✅ **Inspección detallada de tool calls**
+✅ **Streaming de respuestas en tiempo real**
+✅ **Gestión de sesiones y usuarios**
+✅ **Privacidad garantizada** (todo local, no envía datos externos)
+
+### Integración con Dashboard
+
+La navegación entre páginas está sincronizada:
+
+| Página | URL | Descripción |
+|--------|-----|-------------|
+| **Dashboard** | http://localhost:8000 | Gráficos, estadísticas, eventos LLM |
+| **Agentes** | http://localhost:8000/agents.html | Chat con agentes, inspección de tools |
+
+Ambas páginas comparten:
+- ✅ Tema dark/light sincronizado
+- ✅ Estilos consistentes
+- ✅ Navegación fluida con botones en header
+
+### API de Agentes (Futuro)
+
+En futuras versiones se habilitarán endpoints REST para interactuar con agentes programáticamente:
+
+```bash
+# Consultar a un agente específico
+curl -X POST "http://localhost:8000/api/agents/vigilante/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Analiza el último evento", "context": {...}}'
+
+# Obtener historial de conversaciones
+curl "http://localhost:8000/api/agents/vigilante/history?limit=10"
+
+# Ejecutar análisis automático
+curl -X POST "http://localhost:8000/api/agents/analyze" \
+  -d '{"csv_path": "disp_example.csv", "point_idx": 5000}'
+```
+
+### Troubleshooting
+
+#### La interfaz de agentes no carga
+
+```bash
+# Verificar que Agno esté instalado
+pip install agno
+
+# Verificar que agno_team.py exista
+ls agno_team.py
+
+# Revisar logs del servidor
+python start_server.py --reload
+# Buscar: "Agno AgentOS mounted at /agents"
+```
+
+#### Error "No se pudo montar agno_team"
+
+Esto es normal si Agno no está instalado. La aplicación seguirá funcionando sin la interfaz de agentes.
+
+```bash
+# Instalar Agno
+pip install agno
+
+# Reiniciar servidor
+python start_server.py --reload
+```
+
+#### Los agentes no responden
+
+```bash
+# Verificar API key de DeepSeek en .env
+cat .env | grep DEEPSEEK_API_KEY
+
+# Verificar conectividad
+curl https://api.deepseek.com/v1/models
+
+# Revisar base de datos
+sqlite3 vigilante_geotecnico.db "SELECT * FROM messages LIMIT 5;"
 ```
 
 ---

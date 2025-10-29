@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agentes Agno - Vigilante Geotécnico</title>
+  <style>
+    :root {
+      /* Dark mode variables (default) */
+      --bg-body: #0d1117;
+      --bg-card: #161b22;
+      --bg-header: #0d1117;
+      --border-color: #30363d;
+      --text-color: #e6edf3;
+      --text-muted: #8b949e;
+      --button-bg: #21262d;
+      --button-hover: #30363d;
+      --button-active: #484f58;
+      --accent-color: #58a6ff;
+    }
+
+    body.light-mode {
+      /* Light mode overrides */
+      --bg-body: #ffffff;
+      --bg-card: #f6f8fa;
+      --bg-header: #ffffff;
+      --border-color: #d1d9e0;
+      --text-color: #1f2328;
+      --text-muted: #656d76;
+      --button-bg: #f6f8fa;
+      --button-hover: #d1d9e0;
+      --button-active: #c9d1d9;
+      --accent-color: #0969da;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg-body);
+      color: var(--text-color);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-header);
+      flex-wrap: wrap;
+    }
+
+    header .title {
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    header .meta {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    header .nav {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .nav-btn {
+      background: var(--button-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+
+    .nav-btn:hover {
+      background: var(--button-hover);
+    }
+
+    .nav-btn.active {
+      background: var(--accent-color);
+      color: white;
+      border-color: var(--accent-color);
+    }
+
+    button.zoom {
+      background: var(--button-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    button.zoom:hover {
+      background: var(--button-hover);
+    }
+
+    .main-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .info-banner {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .info-banner .icon {
+      font-size: 24px;
+    }
+
+    .info-banner .text {
+      flex: 1;
+    }
+
+    .info-banner .text h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .info-banner .text p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .iframe-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .iframe-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg-body);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .loading-overlay.hidden {
+      display: none;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--border-color);
+      border-top-color: var(--accent-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .error-message {
+      background: #f85149;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 6px;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    .error-message.hidden {
+      display: none;
+    }
+
+    /* Agent selector */
+    .agent-selector {
+      display: flex;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      align-items: center;
+    }
+
+    .agent-selector label {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .agent-selector select {
+      background: var(--button-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      header .nav {
+        margin-left: 0;
+        width: 100%;
+      }
+
+      .info-banner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .nav-btn {
+        flex: 1;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">🤖 Agentes Agno</div>
+    <div class="meta">Chat interactivo con agentes geotécnicos</div>
+    <div class="nav">
+      <a href="/" class="nav-btn">📊 Dashboard</a>
+      <a href="/agents.html" class="nav-btn active">🤖 Agentes</a>
+      <button id="themeToggleBtn" class="zoom" title="Toggle Theme" aria-label="Alternar tema">
+        <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="info-banner">
+    <div class="icon">💬</div>
+    <div class="text">
+      <h3>Interfaz de Chat con Agentes</h3>
+      <p>Interactúa con <strong>Vigilante</strong>, <strong>Supervisor</strong> y <strong>Reportador</strong>. Inspecciona herramientas y conversaciones en tiempo real.</p>
+    </div>
+  </div>
+
+  <div class="agent-selector">
+    <label for="agentSelect">Agente activo:</label>
+    <select id="agentSelect">
+      <option value="all">Todos los agentes</option>
+      <option value="vigilante">👁️ Vigilante (1-3h)</option>
+      <option value="supervisor">🔍 Supervisor (12-48h)</option>
+      <option value="reportador">📊 Reportador (Informes)</option>
+    </select>
+    <span style="color: var(--text-muted); font-size: 12px; margin-left: 8px;" id="agentInfo">Equipo multi-agente con persistencia en SQLite</span>
+  </div>
+
+  <div class="main-container">
+    <div class="iframe-container">
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Cargando AgentOS UI...</div>
+      </div>
+      <div class="error-message hidden" id="errorMessage">
+        ⚠️ No se pudo cargar la interfaz de Agno. Asegúrate de que el servidor esté corriendo en el puerto 8000.
+      </div>
+      <iframe id="agnoFrame" src="/agents" title="Agno AgentOS Interface"></iframe>
+    </div>
+  </div>
+
+  <script>
+    // Theme management
+    let isLightMode = localStorage.getItem('theme') === 'light';
+
+    function toggleTheme() {
+      isLightMode = !isLightMode;
+      document.body.classList.toggle('light-mode', isLightMode);
+      localStorage.setItem('theme', isLightMode ? 'light' : 'dark');
+      updateThemeIcon();
+    }
+
+    function updateThemeIcon() {
+      const icon = document.getElementById('themeIcon');
+      if (isLightMode) {
+        // Moon icon
+        icon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+      } else {
+        // Sun icon
+        icon.innerHTML = `
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        `;
+      }
+    }
+
+    // Apply theme on load
+    if (isLightMode) {
+      document.body.classList.add('light-mode');
+    }
+    updateThemeIcon();
+
+    // Iframe loading
+    const iframe = document.getElementById('agnoFrame');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const errorMessage = document.getElementById('errorMessage');
+
+    iframe.addEventListener('load', function() {
+      loadingOverlay.classList.add('hidden');
+    });
+
+    iframe.addEventListener('error', function() {
+      loadingOverlay.classList.add('hidden');
+      errorMessage.classList.remove('hidden');
+    });
+
+    // Timeout fallback (si no carga en 10 segundos)
+    setTimeout(() => {
+      if (!loadingOverlay.classList.contains('hidden')) {
+        loadingOverlay.classList.add('hidden');
+        errorMessage.classList.remove('hidden');
+      }
+    }, 10000);
+
+    // Agent selector
+    const agentSelect = document.getElementById('agentSelect');
+    const agentInfo = document.getElementById('agentInfo');
+
+    agentSelect.addEventListener('change', function() {
+      const selected = this.value;
+      const descriptions = {
+        'all': 'Equipo multi-agente con persistencia en SQLite',
+        'vigilante': 'Análisis de corto plazo (1-3h) con señales de velocidad y EMAs',
+        'supervisor': 'Validación con contexto de medio plazo (12-48h)',
+        'reportador': 'Generación de reportes horarios y de turno'
+      };
+      agentInfo.textContent = descriptions[selected] || '';
+
+      // En una implementación completa, aquí podrías cambiar el contexto del iframe
+      // o hacer un fetch a un endpoint específico del agente
+      console.log('Agente seleccionado:', selected);
+    });
+
+    // Theme toggle
+    document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+
+    // Verificar que el endpoint /agents esté disponible
+    fetch('/agents')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Agno endpoint not available');
+        }
+      })
+      .catch(error => {
+        console.error('Error checking /agents endpoint:', error);
+        loadingOverlay.classList.add('hidden');
+        errorMessage.classList.remove('hidden');
+      });
+  </script>
+</body>
+</html>

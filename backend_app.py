@@ -77,6 +77,15 @@ def index():
     return JSONResponse({"ok": True, "message": "API Viva"})
 
 
+@app.get("/agents.html")
+def agents_page():
+    """Sirve la página de agentes."""
+    file = STATIC_PATH / "agents.html"
+    if file.exists():
+        return FileResponse(str(file))
+    return JSONResponse({"ok": False, "message": "Agents page not found"}, status_code=404)
+
+
 # ============================================================================
 # GENERACIÓN DE REPORTES
 # ============================================================================

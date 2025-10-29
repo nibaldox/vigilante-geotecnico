@@ -82,6 +82,32 @@
     button.zoom:hover { background: var(--button-hover); }
     button.zoom:active { background: var(--button-active); }
     .zoom-controls { display:flex; gap:4px; margin-right:12px; }
+
+    /* Navigation buttons */
+    .nav-btn {
+      background: var(--button-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .nav-btn:hover { background: var(--button-hover); }
+    .nav-btn.active {
+      background: #58a6ff;
+      color: white;
+      border-color: #58a6ff;
+    }
+    body.light-mode .nav-btn.active {
+      background: #0969da;
+      border-color: #0969da;
+    }
      /* Removed fixed height to allow the canvas to size via flexbox and Chart.js
        (Chart created with maintainAspectRatio: false). */
      .chart-container { position:relative; width:100%; }
@@ -804,6 +830,8 @@
     </div>
     <div class="meta instructions">Zoom: Ctrl+rueda | Pan: Shift+drag | Zoom: botones | Reset: doble clic</div>
     <div class="actions">
+      <a href="/" class="nav-btn active">📊 Dashboard</a>
+      <a href="/agents.html" class="nav-btn">🤖 Agentes</a>
       <div class="zoom-controls">
         <button id="zoomInBtn" class="zoom" title="Zoom In" aria-label="Zoom in">+</button>
         <button id="zoomOutBtn" class="zoom" title="Zoom Out" aria-label="Zoom out">−</button>
