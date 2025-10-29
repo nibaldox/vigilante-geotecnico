@@ -18,10 +18,12 @@
 - **📊 Análisis en tiempo real** de deformaciones geotécnicas
 - **🤖 Equipo de agentes IA** (Vigilante, Supervisor, Reportador) con DeepSeek
 - **📈 Visualización web interactiva** con gráficos dinámicos
+- **📁 Selector de archivos** - Cambia entre múltiples archivos JSONL sin reiniciar
+- **⏰ Reportes automáticos** cada 12 horas (6:30 AM y 6:30 PM)
 - **⚡ Simulación acelerada** con emisión horaria configurable
 - **🔧 Reglas adaptativas** con umbrales deslizantes de 12 horas
-- **📋 Reportes automáticos** cada 12 horas (turnos día/noche)
-- **🎯 API REST** para integración con sistemas externos
+- **🚀 Script de inicio unificado** - Inicia todo el sistema con un comando
+- **🎯 API REST completa** para integración con sistemas externos
 
 ---
 
@@ -119,23 +121,22 @@ venv\Scripts\activate     # Windows
 
 ### 3. Instalar dependencias
 
-#### Instalación básica (versión original y modular)
+#### Instalación completa (recomendada)
 ```bash
 pip install -r requirements.txt
 ```
 
-#### Instalación completa (incluye Agno Framework)
-```bash
-pip install -r requirements.txt
-pip install agno
-```
+**Incluye:**
+- pandas, numpy, matplotlib (análisis de datos)
+- fastapi, uvicorn (servidor web)
+- APScheduler (reportes automáticos)
+- rich (output formateado)
+- python-dotenv (configuración)
+- agno (framework multi-agente - opcional)
 
 #### Instalación con versiones fijadas (reproducibilidad)
-```powershell
-# (Windows PowerShell)
-venv\Scripts\Activate.ps1
+```bash
 pip install -r requirements-lock.txt
-pip install agno
 ```
 
 **Nota**: El framework Agno es opcional. Solo necesitas instalarlo si quieres usar `agente_geotecnico_agno.py`.
@@ -155,7 +156,36 @@ El sistema crea automáticamente la base de datos SQLite `vigilante_geotecnico.d
 
 ## 🎯 Uso Rápido
 
-### Opción 1: 🚀 Agno Framework (Recomendado para producción)
+### 🚀 Inicio Rápido (Recomendado)
+
+**Script unificado que inicia todo el sistema:**
+
+```bash
+# Inicio simple (puerto 8000)
+python start_server.py
+
+# Con auto-reload para desarrollo
+python start_server.py --reload
+
+# Puerto personalizado
+python start_server.py --port 9000
+
+# Sin abrir navegador automáticamente
+python start_server.py --no-browser
+```
+
+**Incluye:**
+- ✅ Backend FastAPI
+- ✅ Frontend web interactivo
+- ✅ Selector de archivos JSONL
+- ✅ Reportes automáticos (6:30 AM/PM)
+- ✅ Agno AgentOS (si está disponible)
+- ✅ Verificación de dependencias
+- ✅ Apertura automática de navegador
+
+---
+
+### Opción 1: 🚀 Agno Framework (Multi-agente avanzado)
 
 La implementación más avanzada con multi-agentes, tools y UI integrada:
 
@@ -293,13 +323,98 @@ python agno_team.py report12h --jsonl registros.jsonl --hours 12 --out resumen_t
 
 ---
 
+## 📁 Selector de Archivos
+
+### Cambiar entre múltiples archivos JSONL
+
+La interfaz web permite seleccionar dinámicamente el archivo JSONL a visualizar:
+
+**Características:**
+- 📂 Dropdown con todos los archivos `.jsonl` disponibles
+- 🔄 Actualización automática del gráfico al cambiar
+- 💾 Persistencia de selección (localStorage)
+- 🎯 Sin necesidad de reiniciar el servidor
+
+**Uso:**
+1. Abre http://localhost:8000
+2. En el header, selecciona archivo del dropdown "Fuente:"
+3. El gráfico se actualiza automáticamente
+
+**API:**
+```bash
+# Listar archivos disponibles
+curl http://localhost:8000/api/files
+
+# Cargar eventos de un archivo específico
+curl "http://localhost:8000/api/events?file=registros_agno.jsonl&limit=500"
+```
+
+---
+
+## ⏰ Reportes Automáticos
+
+### Generación programada cada 12 horas
+
+El sistema genera reportes automáticamente a las **6:30 AM** y **6:30 PM** todos los días.
+
+**Contenido del reporte:**
+- 📈 Distribución de estados (NORMAL/ALERTA/ALARMA)
+- ⚡ Métricas de velocidad (promedio, máxima, P95, P99)
+- 📏 Métricas de desplazamiento (mín, máx, rango)
+- 🚨 Top 20 eventos destacados (ALERTA/ALARMA)
+- 🌓 Detección de turno (DÍA/NOCHE)
+
+**Formatos:**
+- `reports/reporte_auto_YYYYMMDD_HHMMSS.json` (programático)
+- `reports/reporte_auto_YYYYMMDD_HHMMSS.md` (legible)
+
+**Generar reporte manual:**
+```bash
+# Últimas 12 horas
+curl "http://localhost:8000/api/reports/generate"
+
+# Últimas 24 horas
+curl "http://localhost:8000/api/reports/generate?hours=24"
+
+# De archivo específico
+curl "http://localhost:8000/api/reports/generate?hours=12&file=registros_agno.jsonl"
+```
+
+**Listar reportes:**
+```bash
+curl "http://localhost:8000/api/reports/list"
+```
+
+**Personalizar horarios:**
+
+Edita `backend_app.py` líneas 325-339:
+```python
+# Cambiar a 8:00 AM y 8:00 PM
+scheduler.add_job(
+    save_scheduled_report,
+    trigger=CronTrigger(hour=8, minute=0),  # 8:00 AM
+    id="reporte_8am",
+)
+```
+
+---
+
 ## 📊 API Endpoints
 
-### GET /api/events
+### Eventos
+
+**GET /api/events**
+
 Obtiene los últimos eventos de monitoreo.
 
-**Parámetros de consulta:**
+**Parámetros:**
 - `limit` (int): Número máximo de eventos (default: 200)
+- `file` (str): Archivo JSONL específico (default: registros.jsonl)
+
+**Ejemplo:**
+```bash
+curl "http://localhost:8000/api/events?limit=500&file=registros.jsonl"
+```
 
 **Respuesta:**
 ```json
@@ -317,7 +432,77 @@ Obtiene los últimos eventos de monitoreo.
 }
 ```
 
-### GET /agents/*
+### Archivos
+
+**GET /api/files**
+
+Lista todos los archivos JSONL disponibles.
+
+**Ejemplo:**
+```bash
+curl http://localhost:8000/api/files
+```
+
+**Respuesta:**
+```json
+{
+  "files": [
+    "registros.jsonl",
+    "registros_agno.jsonl",
+    "registros_turno_dia.jsonl"
+  ]
+}
+```
+
+### Reportes
+
+**GET /api/reports/generate**
+
+Genera un reporte bajo demanda.
+
+**Parámetros:**
+- `hours` (float): Horas hacia atrás (default: 12.0)
+- `file` (str): Archivo JSONL específico (opcional)
+
+**Ejemplo:**
+```bash
+curl "http://localhost:8000/api/reports/generate?hours=24"
+```
+
+**GET /api/reports/list**
+
+Lista reportes generados.
+
+**Ejemplo:**
+```bash
+curl http://localhost:8000/api/reports/list
+```
+
+**Respuesta:**
+```json
+{
+  "reports": [
+    {
+      "file": "reporte_auto_20251028_183000.json",
+      "created": "2025-10-28T18:30:00"
+    }
+  ]
+}
+```
+
+**GET /api/reports/{filename}**
+
+Obtiene un reporte específico.
+
+**Ejemplo:**
+```bash
+curl "http://localhost:8000/api/reports/reporte_auto_20251028_183000.json"
+```
+
+### Agentes IA
+
+**GET /agents/***
+
 Interfaz completa de Agno AgentOS para interactuar con los agentes IA.
 
 ---
@@ -427,7 +612,34 @@ El sistema está **100% optimizado** para dispositivos móviles y tablets:
 
 ## 🧪 Ejemplos de uso
 
+### Flujo Completo (Recomendado)
+
+```bash
+# 1. Instalar dependencias
+pip install -r requirements.txt
+
+# 2. Configurar API key (opcional, para LLM)
+echo "DEEPSEEK_API_KEY=sk-xxxxx" > .env
+
+# 3. Generar datos de análisis
+python agente_geotecnico.py \
+  --csv "disp_example.csv" \
+  --start-at "2025-09-01 00:00" \
+  --emit-every-min 60 \
+  --log-jsonl registros.jsonl
+
+# 4. Iniciar servidor completo
+python start_server.py --reload
+
+# 5. Abrir http://localhost:8000 y:
+#    - Seleccionar archivo JSONL en el dropdown
+#    - Ver gráficos interactivos
+#    - Esperar reportes automáticos (6:30 AM/PM)
+#    - O generar reporte manual desde /api/reports/generate
+```
+
 ### Simulación completa (1h real = 1h simulada)
+
 ```bash
 # Versión estándar
 python agente_geotecnico.py \
@@ -436,47 +648,71 @@ python agente_geotecnico.py \
   --emit-every-min 60 \
   --dry-run  # sin LLM para pruebas rápidas
 
-# Versión mejorada
+# Versión mejorada con validación JSON
 python agente_geotecnico_ds.py \
   --csv "disp_example.csv" \
   --start-at "2025-09-01 00:00" \
   --emit-every-min 60 \
-  --dry-run  # sin LLM para pruebas rápidas
+  --dry-run
+```
+
+### Simulación acelerada (10x)
+
+```bash
+# Versión estándar
+python agente_geotecnico.py \
+  --csv "disp_example.csv" \
+  --step-points 6 \
+  --sleep 0.05 \
+  --llm-every 1
+
+# Versión mejorada
+python agente_geotecnico_ds.py \
+  --csv "disp_example.csv" \
+  --step-points 6 \
+  --sleep 0.05 \
+  --llm-every 1
+```
+
+### Solo agentes IA (Agno)
+
+```bash
+# Agno básico
+python agno_team.py serve --reload
+
+# Agno avanzado con tools
+python agente_geotecnico_agno.py serve --reload
+```
+
+### Generar reportes manualmente
+
+```bash
+# Reporte de últimas 12 horas
+curl "http://localhost:8000/api/reports/generate"
+
+# Reporte de últimas 24 horas
+curl "http://localhost:8000/api/reports/generate?hours=24"
+
+# Reporte de archivo específico
+curl "http://localhost:8000/api/reports/generate?hours=12&file=registros_agno.jsonl"
+
+# Listar todos los reportes generados
+curl "http://localhost:8000/api/reports/list"
 ```
 
 ### Tests
 
-Se incluyen tests básicos usando pytest. Para ejecutar los tests en tu entorno:
+Se incluyen tests básicos usando pytest:
 
-```powershell
-# activar venv (Windows PowerShell)
-& .\venv\Scripts\Activate.ps1
-python -m pytest -q
-```
-
-El repositorio también incluye un `requirements-lock.txt` con las versiones actualmente usadas; es recomendable instalar desde ese archivo para CI/reproducción.
-
-
-### Simulación acelerada (10x)
 ```bash
-# Versión estándar
-python agente_geotecnico.py \
-  --csv "disp_example.csv" \
-  --step-points 6 \
-  --sleep 0.05 \
-  --llm-every 1
+# Ejecutar todos los tests
+pytest tests/ -v
 
-# Versión mejorada
-python agente_geotecnico_ds.py \
-  --csv "disp_example.csv" \
-  --step-points 6 \
-  --sleep 0.05 \
-  --llm-every 1
-```
+# Con cobertura
+pytest tests/ --cov=vigilante_geotecnico --cov-report=html
 
-### Solo agentes IA
-```bash
-python agno_team.py serve --reload
+# Solo un módulo específico
+pytest tests/test_agente.py -v
 ```
 
 ---
@@ -753,12 +989,58 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 ---
 
+## 📚 Documentación Adicional
+
+- **[docs/FEATURES.md](docs/FEATURES.md)** - Guía completa de nuevas funcionalidades
+  - Selector de archivos JSONL
+  - Reportes automáticos (6:30 AM/PM)
+  - API REST completa
+  - Script de inicio unificado
+  - Ejemplos de integración
+
+- **[docs/AGNO_IMPLEMENTATION.md](docs/AGNO_IMPLEMENTATION.md)** - Framework Agno (600+ líneas)
+  - Arquitectura multi-agente
+  - 5 tools geotécnicos
+  - Ejemplos de uso
+  - Extensiones futuras
+
+- **[vigilante_geotecnico/README.md](vigilante_geotecnico/README.md)** - API reference modular (687 líneas)
+  - Documentación de 7 módulos
+  - Ejemplos de código
+  - Guía de desarrollo
+
+- **[REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md)** - Métricas de refactorización
+  - Comparativa antes/después
+  - Beneficios de la modularización
+  - Guía de migración
+
+---
+
 ## 🙏 Agradecimientos
 
 - **Agno** por el framework de agentes multi-modal
 - **DeepSeek** por el modelo de lenguaje
 - **FastAPI** por el framework web de alto rendimiento
 - **Chart.js** por la visualización interactiva
+- **APScheduler** por la programación de tareas
+
+---
+
+## 📝 Changelog
+
+### v1.1.0 (2025-10-28)
+- ✨ Selector de archivos JSONL en interfaz web
+- ⏰ Reportes automáticos cada 12h (6:30 AM/PM)
+- 🚀 Script de inicio unificado (`start_server.py`)
+- 📊 API REST completa para reportes
+- 📚 Documentación exhaustiva de nuevas features
+
+### v1.0.0 (2025-10-27)
+- 📦 Refactorización modular (23 archivos, 7 módulos)
+- 🤖 Implementación con framework Agno
+- 📖 Documentación completa (3000+ líneas)
+- 🧪 Suite de tests inicial
+- 🔧 CI/CD con GitHub Actions
 
 ---
 
@@ -766,6 +1048,6 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 **¡Mantén tus estructuras seguras con Vigilante Geotécnico!** 🏔️
 
-[⭐ Star this repo](https://github.com/tu-usuario/vigilante-geotecnico) | [🐛 Report Bug](https://github.com/tu-usuario/vigilante-geotecnico/issues) | [💡 Request Feature](https://github.com/tu-usuario/vigilante-geotecnico/issues)
+**Versión 1.1.0** | [⭐ Star this repo](https://github.com/nibaldox/vigilante-geotecnico) | [🐛 Report Bug](https://github.com/nibaldox/vigilante-geotecnico/issues) | [💡 Request Feature](https://github.com/nibaldox/vigilante-geotecnico/issues)
 
 </div>
